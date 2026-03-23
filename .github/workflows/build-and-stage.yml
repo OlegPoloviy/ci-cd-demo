@@ -1,0 +1,81 @@
+name: Build and push image to the registry
+
+on:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_TAG: sha-${{ github.sha }}
+
+jobs:
+  build_and_push:
+    name: Build and push images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lowercase owner for GHCR
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push orders-api
+        id: orders
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: services/orders-service/Dockerfile
+          target: prod-distroless
+          push: true
+          tags: ghcr.io/${{ env.OWNER_LC }}/orders-api:${{ env.IMAGE_TAG }}
+
+      - name: Build and push payments
+        id: payments
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: services/payments-service/Dockerfile
+          target: prod
+          push: true
+          tags: ghcr.io/${{ env.OWNER_LC }}/payments:${{ env.IMAGE_TAG }}
+
+      - name: Write release-manifest.json
+        env:
+          ORDERS_DIGEST: ${{ steps.orders.outputs.digest }}
+          PAYMENTS_DIGEST: ${{ steps.payments.outputs.digest }}
+        run: |
+          jq -n \
+            --arg commit "${{ github.sha }}" \
+            --arg tag "${{ env.IMAGE_TAG }}" \
+            --arg owner "${{ env.OWNER_LC }}" \
+            --arg od "$ORDERS_DIGEST" \
+            --arg pd "$PAYMENTS_DIGEST" \
+            '{
+              commit: $commit,
+              services: {
+                "orders-api": {
+                  image: ("ghcr.io/" + $owner + "/orders-api:" + $tag),
+                  digest: $od
+                },
+                payments: {
+                  image: ("ghcr.io/" + $owner + "/payments:" + $tag),
+                  digest: $pd
+                }
+              }
+            }' > release-manifest.json
+          cat release-manifest.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-manifest
+          path: release-manifest.json
