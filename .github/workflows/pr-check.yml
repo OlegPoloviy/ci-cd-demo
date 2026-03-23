@@ -1,0 +1,25 @@
+name: PR quality check
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  pr-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: repo-setup
+        uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -C services/orders-service run lint
+      - run: pnpm -C services/orders-service run test
+      - run: docker build -f services/orders-service/Dockerfile .
+      - run: docker build -f services/payments-service/Dockerfile .
