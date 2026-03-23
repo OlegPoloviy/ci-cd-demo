@@ -52,6 +52,73 @@ services:
       timeout: 5s
       retries: 5
 
+  payments-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_PASSWORD: ${PAYMENTS_DB_PASSWORD:-postgres}
+      POSTGRES_USER: ${PAYMENTS_DB_USER:-postgres}
+      POSTGRES_DB: ${PAYMENTS_DB_NAME:-payments}
+    volumes:
+      - payments_pgdata:/var/lib/postgresql/data
+    networks:
+      - db-network
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${PAYMENTS_DB_USER:-postgres} -d ${PAYMENTS_DB_NAME:-payments}',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  payments-migrate:
+    build:
+      context: .
+      dockerfile: services/payments-service/Dockerfile
+      target: build
+    working_dir: /repo
+    command:
+      [
+        'pnpm',
+        '--filter',
+        './services/payments-service',
+        'exec',
+        'typeorm-ts-node-commonjs',
+        '-d',
+        'data-source.ts',
+        'migration:run',
+      ]
+    env_file:
+      - .env
+    environment:
+      PAYMENTS_DB_HOST: payments-db
+    networks:
+      - db-network
+    depends_on:
+      payments-db:
+        condition: service_healthy
+
+  payments-api:
+    build:
+      context: .
+      dockerfile: services/payments-service/Dockerfile
+    env_file:
+      - .env
+    environment:
+      PAYMENTS_DB_HOST: payments-db
+      PAYMENTS_GRPC_BIND_URL: 0.0.0.0:${PAYMENTS_GRPC_PORT:-50051}
+    ports:
+      - '${PAYMENTS_GRPC_PORT:-50051}:${PAYMENTS_GRPC_PORT:-50051}'
+    networks:
+      - db-network
+      - api-network
+    depends_on:
+      payments-db:
+        condition: service_healthy
+      payments-migrate:
+        condition: service_completed_successfully
+
   orders-api:
     build:
       context: .
@@ -61,6 +128,8 @@ services:
       - '${PORT:-8080}:3000'
     env_file:
       - .env
+    environment:
+      PAYMENTS_GRPC_URL: payments-api:${PAYMENTS_GRPC_PORT:-50051}
     networks:
       - db-network
       - api-network
@@ -69,6 +138,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      payments-api:
+        condition: service_started
 
   migrate:
     build:
@@ -113,5 +184,6 @@ networks:
 
 volumes:
   pgdata:
+  payments_pgdata:
   minio_data:
   rabbit_data:

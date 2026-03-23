@@ -22,16 +22,17 @@ export class AllExceptionFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    let message = exception instanceof Error ? exception.message : 'Unknown error';
+    let message =
+      exception instanceof Error ? exception.message : 'Unknown error';
     if (statusCode === HttpStatus.INTERNAL_SERVER_ERROR) {
-       message = 'Internal server error occurred';
+      message = 'Internal server error occurred';
     }
 
     this.logException(exception, statusCode, message, host);
 
     if (contextType === 'graphql') {
       let errorCode = 'INTERNAL_SERVER_ERROR';
-      
+
       if (exception instanceof HttpException) {
         if (statusCode === HttpStatus.BAD_REQUEST) {
           errorCode = 'BAD_USER_INPUT';
@@ -46,7 +47,8 @@ export class AllExceptionFilter implements ExceptionFilter {
         extensions: {
           code: errorCode,
           status: statusCode,
-          details: exception instanceof HttpException ? exception.getResponse() : null,
+          details:
+            exception instanceof HttpException ? exception.getResponse() : null,
         },
       });
     }
@@ -64,7 +66,12 @@ export class AllExceptionFilter implements ExceptionFilter {
     }
   }
 
-  private logException(exception: unknown, statusCode: number, message: string, host: ArgumentsHost): void {
+  private logException(
+    exception: unknown,
+    statusCode: number,
+    message: string,
+    host: ArgumentsHost,
+  ): void {
     const contextType = host.getType<GqlContextType | 'http'>();
     let method = 'GQL';
     let path = '/graphql';
@@ -78,7 +85,9 @@ export class AllExceptionFilter implements ExceptionFilter {
     if (statusCode >= 500) {
       this.logger.error(
         `${method} ${path} - ${statusCode}: ${message}`,
-        exception instanceof Error ? exception.stack : JSON.stringify(exception),
+        exception instanceof Error
+          ? exception.stack
+          : JSON.stringify(exception),
       );
     } else {
       this.logger.warn(`${method} ${path} - ${statusCode}: ${message}`);

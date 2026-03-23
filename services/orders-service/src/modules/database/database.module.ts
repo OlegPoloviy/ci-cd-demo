@@ -18,8 +18,8 @@ import { TypeOrmRequestContextLogger } from './db-logger';
         autoLoadEntities: true,
         synchronize: false,
         logging: true,
-        logger: new TypeOrmRequestContextLogger()
-      })
+        logger: new TypeOrmRequestContextLogger(),
+      }),
     }),
   ],
 })

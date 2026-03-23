@@ -10,7 +10,9 @@ export class RequestContextMiddleware implements NestMiddleware {
     requestContext.run(store, () => {
       res.on('finish', () => {
         if (req.originalUrl.startsWith('/graphql')) {
-          console.log(`[${req.method} ${req.originalUrl}] SQL queries: ${store.queryCount}`);
+          console.log(
+            `[${req.method} ${req.originalUrl}] SQL queries: ${store.queryCount}`,
+          );
         }
       });
 

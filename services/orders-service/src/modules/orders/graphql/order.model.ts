@@ -1,6 +1,6 @@
-import { Field, ID, ObjectType,registerEnumType} from '@nestjs/graphql';
-import {OrderStatus} from '../../../constants';
-import {OrderItemModel} from './order-item.model';
+import { Field, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
+import { OrderStatus } from '../../../constants';
+import { OrderItemModel } from './order-item.model';
 import { UserModel } from '../../user/graphql/user.model';
 
 registerEnumType(OrderStatus, {

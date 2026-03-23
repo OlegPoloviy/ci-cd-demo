@@ -1,7 +1,7 @@
-import { UserEntity } from "../../../modules/user/user.entity";
-import { Product } from "../../../modules/products/products.entity";
-import { OrderItemEntity } from "../../../modules/orders/order-item.entity";
-import DataLoader from "dataloader";
+import { UserEntity } from '../../../modules/user/user.entity';
+import { Product } from '../../../modules/products/products.entity';
+import { OrderItemEntity } from '../../../modules/orders/order-item.entity';
+import DataLoader from 'dataloader';
 
 export type Loaders = {
   userLoader: DataLoader<string, UserEntity>;

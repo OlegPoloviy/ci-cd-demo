@@ -8,7 +8,6 @@ import { DataLoaderFactory } from './data-loader';
 @Module({
   imports: [TypeOrmModule.forFeature([UserEntity, Product, OrderItemEntity])],
   providers: [DataLoaderFactory],
-  exports: [DataLoaderFactory]
+  exports: [DataLoaderFactory],
 })
 export class LoadersModule {}
-

@@ -14,46 +14,52 @@ export class DataLoaderFactory {
     @InjectRepository(Product)
     private readonly productsRepository: Repository<Product>,
     @InjectRepository(OrderItemEntity)
-    private readonly orderItemsRepository: Repository<OrderItemEntity>
+    private readonly orderItemsRepository: Repository<OrderItemEntity>,
   ) {}
-   
+
   createLoader() {
     return {
-        userLoader: new DataLoader(async (ids: readonly string[]) => {
-            if (ids.length === 0) return [];
+      userLoader: new DataLoader(async (ids: readonly string[]) => {
+        if (ids.length === 0) return [];
 
-            const users = await this.usersRepository.find({ where: { id: In([...ids]) } });
-            const usersById = new Map(users.map((user) => [user.id, user]));
-            
-            return ids.map((id) => usersById.get(id) ?? null);
-        }),
+        const users = await this.usersRepository.find({
+          where: { id: In([...ids]) },
+        });
+        const usersById = new Map(users.map((user) => [user.id, user]));
 
-        productLoader: new DataLoader(async (ids: readonly string[]) => {
-            if (ids.length === 0) return [];
+        return ids.map((id) => usersById.get(id) ?? null);
+      }),
 
-            const products = await this.productsRepository.find({ where: { id: In([...ids]) } });
-            const productsById = new Map(products.map((product) => [product.id, product]));
-            
-            return ids.map((id) => productsById.get(id) ?? null);
-        }),
+      productLoader: new DataLoader(async (ids: readonly string[]) => {
+        if (ids.length === 0) return [];
 
-        orderItemsLoader: new DataLoader(async (orderIds: readonly string[]) => {
-            if (orderIds.length === 0) return [];
+        const products = await this.productsRepository.find({
+          where: { id: In([...ids]) },
+        });
+        const productsById = new Map(
+          products.map((product) => [product.id, product]),
+        );
 
-            const orderItems = await this.orderItemsRepository.find({ 
-                where: { orderId: In([...orderIds]) } 
-            });
+        return ids.map((id) => productsById.get(id) ?? null);
+      }),
 
-            const itemsByOrderId = new Map<string, OrderItemEntity[]>();
-            
-            orderIds.forEach(id => itemsByOrderId.set(id, [])); 
+      orderItemsLoader: new DataLoader(async (orderIds: readonly string[]) => {
+        if (orderIds.length === 0) return [];
 
-            orderItems.forEach(item => {
-                itemsByOrderId.get(item.orderId)?.push(item);
-            });
+        const orderItems = await this.orderItemsRepository.find({
+          where: { orderId: In([...orderIds]) },
+        });
 
-            return orderIds.map((id) => itemsByOrderId.get(id) || []);
-        }),
-    } 
+        const itemsByOrderId = new Map<string, OrderItemEntity[]>();
+
+        orderIds.forEach((id) => itemsByOrderId.set(id, []));
+
+        orderItems.forEach((item) => {
+          itemsByOrderId.get(item.orderId)?.push(item);
+        });
+
+        return orderIds.map((id) => itemsByOrderId.get(id) || []);
+      }),
+    };
   }
 }
