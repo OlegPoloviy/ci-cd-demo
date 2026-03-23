@@ -1,7 +1,10 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
   parserOptions: {
-    project: 'tsconfig.json',
+    project: [
+      './services/orders-service/tsconfig.json',
+      './services/payments-service/tsconfig.json',
+    ],
     tsconfigRootDir: __dirname,
     sourceType: 'module',
   },
@@ -15,7 +18,13 @@ module.exports = {
     node: true,
     jest: true,
   },
-  ignorePatterns: ['.eslintrc.js'],
+  ignorePatterns: [
+    '.eslintrc.js',
+    'node_modules',
+    'dist',
+    '**/node_modules/**',
+    '**/dist/**',
+  ],
   rules: {
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',

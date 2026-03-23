@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import {GraphQLModule} from '@nestjs/graphql';
+import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import { OrderResolver} from '../orders/graphql/order.resolver';
+import { OrderResolver } from '../orders/graphql/order.resolver';
 import { DataLoaderFactory } from '../../common/graphql/loaders/data-loader';
 import { LoadersModule } from 'src/common/graphql/loaders/loader.module';
 
@@ -9,7 +9,7 @@ import { LoadersModule } from 'src/common/graphql/loaders/loader.module';
   imports: [
     GraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
-      useFactory : (dataLoaderFactory: DataLoaderFactory) => ({
+      useFactory: (dataLoaderFactory: DataLoaderFactory) => ({
         autoSchemaFile: true,
         graphiql: true,
         introspection: true,
@@ -17,7 +17,7 @@ import { LoadersModule } from 'src/common/graphql/loaders/loader.module';
           loaders: dataLoaderFactory.createLoader(),
         }),
       }),
-       imports: [LoadersModule],
+      imports: [LoadersModule],
       inject: [DataLoaderFactory],
     }),
   ],
