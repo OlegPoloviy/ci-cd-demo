@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package payments.v1;
+
+service Payments {
+    rpc Authorize (AuthorizeRequest) returns (AuthorizeResponse);
+    rpc GetPaymentStatus (PaymentStatusRequest) returns (PaymentStatusResponse);
+    rpc Capture (PaymentsCaptureRequest) returns (PaymentsCaptureResponse);
+    rpc Refubd (PaymentRefundRequest) returns (PaymentsRefundResponse);
+}  
+
+enum PaymentStatus {
+    PAYMENT_STATUS_UNSPECIFIED = 0;
+    PAYMENT_STATUS_AUTHORIZED = 1;
+    PAYMENT_STATUS_CAPTURED = 2;
+    PAYMENT_STATUS_REFUNDED = 3;
+    PAYMENT_STATUS_FAILED = 4;
+    PAYMENT_STATUS_PENDING = 5;
+  }
+
+message AuthorizeRequest {
+    string order_id = 1;
+    uint32 amount = 2;
+    string currency = 3;
+    string idempotency_key = 4;
+}
+
+message AuthorizeResponse {
+    string payment_id = 1;
+    PaymentStatus payment_status = 2;
+}
+
+message PaymentStatusRequest {
+    string payment_id = 1;
+}
+
+message PaymentStatusResponse {
+    string payment_id = 1;
+    PaymentStatus payment_status = 2;
+}
+
+message PaymentsCaptureRequest {}
+message PaymentsCaptureResponse {}
+
+message PaymentRefundRequest {}
+message PaymentsRefundResponse {}
