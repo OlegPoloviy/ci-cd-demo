@@ -49,11 +49,11 @@ COPY contracts/proto /usr/contracts/proto
 
 RUN chown -R node:node /usr/src/app
 USER node
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
 
 FROM gcr.io/distroless/nodejs20-debian12:nonroot AS prod-distroless
 WORKDIR /usr/src/app
 COPY --chown=nonroot:nonroot --from=prod /usr/src/app/node_modules ./node_modules
 COPY --chown=nonroot:nonroot --from=prod /usr/src/app/dist ./dist
 COPY --chown=nonroot:nonroot contracts/proto /usr/contracts/proto
-CMD ["dist/main.js"]
+CMD ["dist/src/main.js"]
