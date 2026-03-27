@@ -2,7 +2,7 @@ name: Build and push image to the registry
 
 on:
   push:
-    branches: [main, develop]
+    branches: [develop]
 
 permissions:
   contents: read
@@ -80,3 +80,89 @@ jobs:
         with:
           name: release-manifest
           path: release-manifest.json
+
+  deploy_stage:
+    name: Deploy to stage
+    runs-on: self-hosted
+    needs: build_and_push
+
+    environment:
+      name: stage
+      url: http://localhost:8080
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download release manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: release-manifest
+          path: .
+
+      - name: Check manifest
+        run: |
+          ls -la
+          cat release-manifest.json
+
+      - name: Read manifest
+        run: |
+          echo 'ORDERS_IMAGE<<EOF' >> $GITHUB_ENV
+          jq -r '.services["orders-api"].image' release-manifest.json >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+          echo 'PAYMENTS_IMAGE<<EOF' >> $GITHUB_ENV
+          jq -r '.services["payments"].image' release-manifest.json >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+      - name: Write stage env file
+        run: |
+          mkdir -p deploy
+          cat > deploy/.env.stage <<'EOF'
+          DB_USER=postgres
+          DB_PASSWORD=postgres
+          DB_NAME=orders
+
+          PAYMENTS_DB_USER=postgres
+          PAYMENTS_DB_PASSWORD=postgres
+          PAYMENTS_DB_NAME=payments
+
+          RABBIT_USER=guest
+          RABBIT_PASSWORD=guest
+
+          MINIO_ROOT_USER=minioadmin
+          MINIO_ROOT_PASSWORD=minioadmin
+
+          MINIO_API_PORT=9000
+          MINIO_CONSOLE_PORT=9001
+
+          PAYMENTS_GRPC_PORT=50051
+          PORT=8080
+          EOF
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Deploy stage stack
+        run: |
+          export ORDERS_IMAGE="${ORDERS_IMAGE}"
+          export PAYMENTS_IMAGE="${PAYMENTS_IMAGE}"
+
+          docker compose \
+            --env-file deploy/.env.stage \
+            -f deploy/compose.stage.yml \
+            -p myapp-stage \
+            pull
+
+          docker compose \
+            --env-file deploy/.env.stage \
+            -f deploy/compose.stage.yml \
+            -p myapp-stage \
+            up -d
+
+      - name: Show running containers
+        run: docker ps
+
+      - name: Post-deploy health check
+        run: |
+          curl --fail --retry 10 --retry-delay 5 http://localhost:8080/health
