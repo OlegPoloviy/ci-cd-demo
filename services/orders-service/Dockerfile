@@ -1,23 +1,22 @@
 # Build from repository root:
 #   docker build -f services/orders-service/Dockerfile .
-
 FROM node:20-alpine AS dev
+WORKDIR /usr/src/app
+RUN corepack enable pnpm
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY services/orders-service/package.json services/orders-service/package.json
+COPY contracts/package.json contracts/package.json
+RUN pnpm install --frozen-lockfile
+
+FROM node:20-alpine AS build
 WORKDIR /usr/src/app
 RUN corepack enable pnpm
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/orders-service/package.json services/orders-service/package.json
 
-RUN pnpm install --frozen-lockfile --filter ./services/orders-service...
+RUN pnpm install --frozen-lockfile
 
-FROM node:20-alpine AS build
-WORKDIR /usr/src/app
-RUN corepack enable pnpm
-
-COPY --from=dev /usr/src/app/node_modules ./node_modules
-COPY --from=dev /usr/src/app/package.json ./package.json
-COPY --from=dev /usr/src/app/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=dev /usr/src/app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY services/orders-service ./services/orders-service
 COPY contracts ./contracts
 
