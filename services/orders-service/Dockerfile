@@ -18,10 +18,11 @@ COPY --from=dev /usr/src/app/node_modules ./node_modules
 COPY --from=dev /usr/src/app/package.json ./package.json
 COPY --from=dev /usr/src/app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=dev /usr/src/app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+
 COPY services/orders-service ./services/orders-service
 COPY contracts ./contracts
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm --filter ./services/orders-service... run build
 
 FROM node:20-alpine AS tools
 WORKDIR /usr/src/app
