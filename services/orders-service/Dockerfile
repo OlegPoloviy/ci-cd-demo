@@ -14,7 +14,6 @@ RUN corepack enable pnpm
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/orders-service/package.json services/orders-service/package.json
-COPY contracts/package.json contracts/package.json
 
 RUN pnpm install --frozen-lockfile
 
