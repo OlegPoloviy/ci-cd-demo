@@ -21,7 +21,7 @@ COPY --from=dev /usr/src/app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY services/orders-service ./services/orders-service
 COPY contracts ./contracts
 
-RUN pnpm --filter ./services/orders-service... run build
+RUN pnpm install --frozen-lockfile
 
 FROM node:20-alpine AS tools
 WORKDIR /usr/src/app
