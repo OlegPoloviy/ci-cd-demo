@@ -148,13 +148,13 @@ jobs:
           export ORDERS_IMAGE="${ORDERS_IMAGE}"
           export PAYMENTS_IMAGE="${PAYMENTS_IMAGE}"
 
-          docker compose \
+          docker-compose \
             --env-file deploy/.env.stage \
             -f deploy/compose.stage.yml \
             -p myapp-stage \
             pull
 
-          docker compose \
+          docker-compose \
             --env-file deploy/.env.stage \
             -f deploy/compose.stage.yml \
             -p myapp-stage \
