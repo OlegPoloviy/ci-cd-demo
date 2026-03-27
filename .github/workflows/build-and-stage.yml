@@ -149,15 +149,21 @@ jobs:
           export PAYMENTS_IMAGE="${PAYMENTS_IMAGE}"
 
           docker-compose \
+            -p myapp-stage \
             --env-file deploy/.env.stage \
             -f deploy/compose.stage.yml \
-            -p myapp-stage \
             pull
 
           docker-compose \
+            -p myapp-stage \
             --env-file deploy/.env.stage \
             -f deploy/compose.stage.yml \
+            down --remove-orphans
+
+          docker-compose \
             -p myapp-stage \
+            --env-file deploy/.env.stage \
+            -f deploy/compose.stage.yml \
             up -d
 
       - name: Show running containers
