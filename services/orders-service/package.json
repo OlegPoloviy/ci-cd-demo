@@ -34,6 +34,7 @@
     "@as-integrations/express5": "^1.1.2",
     "@aws-sdk/client-s3": "^3.995.0",
     "@aws-sdk/s3-request-presigner": "^3.995.0",
+    "@grpc/grpc-js": "^1.14.3",
     "@nestjs/apollo": "^13.2.4",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^4.0.3",
