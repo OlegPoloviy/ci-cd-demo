@@ -116,51 +116,79 @@ jobs:
           echo 'EOF' >> $GITHUB_ENV
 
       - name: Write deploy/.env.stage from Environment secrets
+        working-directory: ${{ github.workspace }}
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          PAYMENTS_GRPC_PORT: ${{ secrets.PAYMENTS_GRPC_PORT }}
+          PAYMENTS_GRPC_TIMEOUT_MS: ${{ secrets.PAYMENTS_GRPC_TIMEOUT_MS }}
+          PAYMENTS_GRPC_BIND_URL: ${{ secrets.PAYMENTS_GRPC_BIND_URL }}
+          DB_HOST_PORT: ${{ secrets.DB_HOST_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET: ${{ secrets.AWS_BUCKET }}
+          AWS_ENDPOINT: ${{ secrets.AWS_ENDPOINT }}
+          CLOUDFRONT_BASE_URL: ${{ secrets.CLOUDFRONT_BASE_URL }}
+          RABBIT_USER: ${{ secrets.RABBIT_USER }}
+          RABBIT_PASSWORD: ${{ secrets.RABBIT_PASSWORD }}
+          RABBITMQ_PREFETCH: ${{ secrets.RABBITMQ_PREFETCH }}
+          RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
+          RABBIT_QUEUE_ORDERS: ${{ secrets.RABBIT_QUEUE_ORDERS }}
+          RABBIT_QUEUE_DLQ: ${{ secrets.RABBIT_QUEUE_DLQ }}
+          RABBIT_RETRY_COUNT: ${{ secrets.RABBIT_RETRY_COUNT }}
+          RABBIT_RETRY_DELAY: ${{ secrets.RABBIT_RETRY_DELAY }}
+          PAYMENTS_DB_HOST: ${{ secrets.PAYMENTS_DB_HOST }}
+          PAYMENTS_DB_PORT: ${{ secrets.PAYMENTS_DB_PORT }}
+          PAYMENTS_DB_USER: ${{ secrets.PAYMENTS_DB_USER }}
+          PAYMENTS_DB_PASSWORD: ${{ secrets.PAYMENTS_DB_PASSWORD }}
+          PAYMENTS_DB_NAME: ${{ secrets.PAYMENTS_DB_NAME }}
+          MINIO_ROOT_USER: ${{ secrets.MINIO_ROOT_USER }}
+          MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
+          MINIO_API_PORT: ${{ secrets.MINIO_API_PORT }}
+          MINIO_CONSOLE_PORT: ${{ secrets.MINIO_CONSOLE_PORT }}
+          PORT: ${{ secrets.PORT }}
         run: |
+          set -euo pipefail
           mkdir -p deploy
-          cat > deploy/.env.stage <<EOF
-          DB_HOST=${{ secrets.DB_HOST }}
-          DB_PORT=${{ secrets.DB_PORT }}
-          PAYMENTS_GRPC_PORT=${{ secrets.PAYMENTS_GRPC_PORT }}
-          PAYMENTS_GRPC_TIMEOUT_MS=${{ secrets.PAYMENTS_GRPC_TIMEOUT_MS }}
-          PAYMENTS_GRPC_BIND_URL=${{ secrets.PAYMENTS_GRPC_BIND_URL }}
-          DB_HOST_PORT=${{ secrets.DB_HOST_PORT }}
-          DB_USER=${{ secrets.DB_USER }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_NAME=${{ secrets.DB_NAME }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}
-          AWS_REGION=${{ secrets.AWS_REGION }}
-          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_BUCKET=${{ secrets.AWS_BUCKET }}
-          AWS_ENDPOINT=${{ secrets.AWS_ENDPOINT }}
-          CLOUDFRONT_BASE_URL=${{ secrets.CLOUDFRONT_BASE_URL }}
-          RABBIT_USER=${{ secrets.RABBIT_USER }}
-          RABBIT_PASSWORD=${{ secrets.RABBIT_PASSWORD }}
-          RABBITMQ_PREFETCH=${{ secrets.RABBITMQ_PREFETCH }}
-          RABBITMQ_URL=${{ secrets.RABBITMQ_URL }}
-          RABBIT_QUEUE_ORDERS=${{ secrets.RABBIT_QUEUE_ORDERS }}
-          RABBIT_QUEUE_DLQ=${{ secrets.RABBIT_QUEUE_DLQ }}
-          RABBIT_RETRY_COUNT=${{ secrets.RABBIT_RETRY_COUNT }}
-          RABBIT_RETRY_DELAY=${{ secrets.RABBIT_RETRY_DELAY }}
-          PAYMENTS_DB_HOST=${{ secrets.PAYMENTS_DB_HOST }}
-          PAYMENTS_DB_PORT=${{ secrets.PAYMENTS_DB_PORT }}
-          PAYMENTS_DB_USER=${{ secrets.PAYMENTS_DB_USER }}
-          PAYMENTS_DB_PASSWORD=${{ secrets.PAYMENTS_DB_PASSWORD }}
-          PAYMENTS_DB_NAME=${{ secrets.PAYMENTS_DB_NAME }}
-          MINIO_ROOT_USER=${{ secrets.MINIO_ROOT_USER }}
-          MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}
-          MINIO_API_PORT=${{ secrets.MINIO_API_PORT }}
-          MINIO_CONSOLE_PORT=${{ secrets.MINIO_CONSOLE_PORT }}
-          PORT=${{ secrets.PORT }}
-          EOF
+          python3 <<'PY'
+          import os
+          keys = [
+              "DB_HOST", "DB_PORT", "PAYMENTS_GRPC_PORT", "PAYMENTS_GRPC_TIMEOUT_MS",
+              "PAYMENTS_GRPC_BIND_URL", "DB_HOST_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME",
+              "JWT_SECRET", "JWT_EXPIRES_IN", "AWS_REGION", "AWS_ACCESS_KEY_ID",
+              "AWS_SECRET_ACCESS_KEY", "AWS_BUCKET", "AWS_ENDPOINT", "CLOUDFRONT_BASE_URL",
+              "RABBIT_USER", "RABBIT_PASSWORD", "RABBITMQ_PREFETCH", "RABBITMQ_URL",
+              "RABBIT_QUEUE_ORDERS", "RABBIT_QUEUE_DLQ", "RABBIT_RETRY_COUNT", "RABBIT_RETRY_DELAY",
+              "PAYMENTS_DB_HOST", "PAYMENTS_DB_PORT", "PAYMENTS_DB_USER", "PAYMENTS_DB_PASSWORD",
+              "PAYMENTS_DB_NAME", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD", "MINIO_API_PORT",
+              "MINIO_CONSOLE_PORT", "PORT",
+          ]
+          path = os.path.join("deploy", ".env.stage")
+          with open(path, "w", encoding="utf-8") as f:
+              for k in keys:
+                  f.write(f"{k}={os.environ.get(k, '')}\n")
+          st = os.stat(path)
+          print(f"Wrote {path} ({st.st_size} bytes)")
+          if st.st_size == 0:
+              raise SystemExit("deploy/.env.stage is empty")
+          PY
+          test -f deploy/.env.stage
+          ls -la deploy/.env.stage
 
       - name: Login to GHCR
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Deploy stage stack
+        working-directory: ${{ github.workspace }}
         run: |
+          set -euo pipefail
+          test -f deploy/.env.stage
           export ORDERS_IMAGE="${ORDERS_IMAGE}"
           export PAYMENTS_IMAGE="${PAYMENTS_IMAGE}"
 
