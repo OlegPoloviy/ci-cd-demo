@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
+import { HealthController } from './health.controller';
 import { AppService } from './app.service';
 import { UserModule } from './modules/user/user.module';
 import { RequestIdMiddleware } from './common/middlewares/request-id.middleware';
@@ -34,7 +35,7 @@ import { RabbitmqModule } from './modules/rabbitmq/rabbitmq.module';
     OrderTrackingModule,
     RabbitmqModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {
