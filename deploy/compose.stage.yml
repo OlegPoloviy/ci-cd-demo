@@ -69,12 +69,11 @@ services:
 
   payments-api:
     image: ${PAYMENTS_IMAGE}
+    env_file:
+      - .env.stage
     environment:
       PAYMENTS_DB_HOST: payments-db
-      PAYMENTS_DB_PORT: 5432
-      PAYMENTS_DB_USER: ${PAYMENTS_DB_USER}
-      PAYMENTS_DB_PASSWORD: ${PAYMENTS_DB_PASSWORD}
-      PAYMENTS_DB_NAME: ${PAYMENTS_DB_NAME}
+      PAYMENTS_DB_PORT: '5432'
       PAYMENTS_GRPC_BIND_URL: 0.0.0.0:${PAYMENTS_GRPC_PORT:-50051}
     ports:
       - '${PAYMENTS_GRPC_PORT:-50051}:${PAYMENTS_GRPC_PORT:-50051}'
@@ -87,20 +86,14 @@ services:
 
   orders-api:
     image: ${ORDERS_IMAGE}
+    env_file:
+      - .env.stage
     environment:
       DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
-      JWT_SECRET: ${JWT_SECRET}
+      DB_PORT: '5432'
       PAYMENTS_GRPC_URL: payments-api:${PAYMENTS_GRPC_PORT:-50051}
       RABBITMQ_URL: amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@rabbitmq:5672
-      MINIO_ENDPOINT: minio
-      MINIO_PORT: 9000
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      PORT: 3000
+      PORT: '3000'
     ports:
       - '${PORT:-8080}:3000'
     networks:
