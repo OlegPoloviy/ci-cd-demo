@@ -1,0 +1,123 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - db-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD}
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    networks:
+      - api-network
+    volumes:
+      - rabbit_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'check_running']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - '${MINIO_API_PORT:-9000}:9000'
+      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - minio_data:/data
+    networks:
+      - api-network
+
+  payments-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_PASSWORD: ${PAYMENTS_DB_PASSWORD}
+      POSTGRES_USER: ${PAYMENTS_DB_USER}
+      POSTGRES_DB: ${PAYMENTS_DB_NAME}
+    volumes:
+      - payments_pgdata:/var/lib/postgresql/data
+    networks:
+      - db-network
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${PAYMENTS_DB_USER} -d ${PAYMENTS_DB_NAME}',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  payments-api:
+    image: ${PAYMENTS_IMAGE}
+    env_file:
+      - .env.stage
+    environment:
+      PAYMENTS_DB_HOST: payments-db
+      PAYMENTS_DB_PORT: '5432'
+      PAYMENTS_GRPC_BIND_URL: 0.0.0.0:${PAYMENTS_GRPC_PORT:-50051}
+    ports:
+      - '${PAYMENTS_GRPC_PORT:-50051}:${PAYMENTS_GRPC_PORT:-50051}'
+    networks:
+      - db-network
+      - api-network
+    depends_on:
+      payments-db:
+        condition: service_healthy
+
+  orders-api:
+    image: ${ORDERS_IMAGE}
+    env_file:
+      - .env.stage
+    environment:
+      DB_HOST: db
+      DB_PORT: '5432'
+      PAYMENTS_GRPC_URL: payments-api:${PAYMENTS_GRPC_PORT:-50051}
+      RABBITMQ_URL: amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@rabbitmq:5672
+      PORT: '3000'
+    ports:
+      - '${PORT:-8080}:3000'
+    networks:
+      - db-network
+      - api-network
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      payments-api:
+        condition: service_started
+      minio:
+        condition: service_started
+
+networks:
+  db-network:
+    driver: bridge
+    internal: true
+  api-network:
+    driver: bridge
+
+volumes:
+  pgdata:
+  payments_pgdata:
+  minio_data:
+  rabbit_data:

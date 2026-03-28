@@ -4,12 +4,12 @@
   "private": true,
   "description": "Monorepo: orders-service + payments-service (gRPC)",
   "scripts": {
-    "start:orders": "pnpm -C apps/orders-service run start:dev",
-    "start:orders:prod": "pnpm -C apps/orders-service run start:prod",
-    "build:orders": "pnpm -C apps/orders-service run build",
-    "start:payments": "pnpm -C apps/payments-service run start:dev",
-    "start:payments:prod": "pnpm -C apps/payments-service run start:prod",
-    "build:payments": "pnpm -C apps/payments-service run build",
+    "start:orders": "pnpm -C services/orders-service run start:dev",
+    "start:orders:prod": "pnpm -C services/orders-service run start:prod",
+    "build:orders": "pnpm -C services/orders-service run build",
+    "start:payments": "pnpm -C services/payments-service run start:dev",
+    "start:payments:prod": "pnpm -C services/payments-service run start:prod",
+    "build:payments": "pnpm -C services/payments-service run build",
     "build": "pnpm run build:orders && pnpm run build:payments",
     "install:all": "pnpm install"
   },

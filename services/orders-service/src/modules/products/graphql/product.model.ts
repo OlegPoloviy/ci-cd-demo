@@ -1,4 +1,11 @@
-import { Field, Float, ID, Int, ObjectType ,GraphQLISODateTime} from '@nestjs/graphql';
+import {
+  Field,
+  Float,
+  ID,
+  Int,
+  ObjectType,
+  GraphQLISODateTime,
+} from '@nestjs/graphql';
 
 @ObjectType()
 export class ProductModel {
@@ -8,10 +15,10 @@ export class ProductModel {
   @Field(() => String)
   name: string;
 
-  @Field(() => String, {nullable: true})
+  @Field(() => String, { nullable: true })
   sku: string;
 
-  @Field(() => String, {nullable: true})
+  @Field(() => String, { nullable: true })
   description: string;
 
   @Field(() => Float)

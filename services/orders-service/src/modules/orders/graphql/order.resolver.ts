@@ -1,37 +1,50 @@
-import {Resolver, Query, Args, ResolveField, Parent, Context } from "@nestjs/graphql";
+import {
+  Resolver,
+  Query,
+  Args,
+  ResolveField,
+  Parent,
+  Context,
+} from '@nestjs/graphql';
 import { OrderModel } from './order.model';
-import {OrdersResponse} from '../dto/order-response.dto';
+import { OrdersResponse } from '../dto/order-response.dto';
 import { OrderFilterInput } from '../dto/order-filter.input';
-import {OrdersService} from '../orders.service';
+import { OrdersService } from '../orders.service';
 import { OrderPaginationInput } from '../dto/order-pagination.input';
 import { UserModel } from '../../user/graphql/user.model';
 import { UserService } from '../../user/user.service';
-import { OrderItemModel } from "./order-item.model";
-import { GraphQLContext } from "src/common/graphql/loaders/loader.type";
+import { OrderItemModel } from './order-item.model';
+import { GraphQLContext } from 'src/common/graphql/loaders/loader.type';
 
 @Resolver(() => OrderModel)
 export class OrderResolver {
-
   constructor(
     private readonly ordersService: OrdersService,
     private readonly usersService: UserService,
-  ) {
-  }
+  ) {}
 
   @Query(() => OrdersResponse)
-  getOrders(@Args('ordersFilter', {nullable: true}) filters: OrderFilterInput, @Args('pagination', { nullable: true })pagination: OrderPaginationInput, @Context() ctx: GraphQLContext){
+  getOrders(
+    @Args('ordersFilter', { nullable: true }) filters: OrderFilterInput,
+    @Args('pagination', { nullable: true }) pagination: OrderPaginationInput,
+    @Context() ctx: GraphQLContext,
+  ) {
     ctx.strategy = 'optimized';
     return this.ordersService.getOrders(pagination, filters);
   }
 
   @Query(() => OrdersResponse)
-  getOrdersSimple(@Args('ordersFilter', {nullable: true}) filters: OrderFilterInput, @Args('pagination', { nullable: true })pagination: OrderPaginationInput, @Context() ctx: GraphQLContext){
+  getOrdersSimple(
+    @Args('ordersFilter', { nullable: true }) filters: OrderFilterInput,
+    @Args('pagination', { nullable: true }) pagination: OrderPaginationInput,
+    @Context() ctx: GraphQLContext,
+  ) {
     ctx.strategy = 'simple';
     return this.ordersService.getOrders(pagination, filters);
   }
 
   @Query(() => OrderModel)
-  getOrderById(@Args('id') id: string){
+  getOrderById(@Args('id') id: string) {
     return this.ordersService.getOrderById(id);
   }
 
