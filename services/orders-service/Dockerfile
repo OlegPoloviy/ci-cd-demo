@@ -39,11 +39,7 @@ FROM node:20-alpine AS prod
 WORKDIR /usr/src/app
 RUN corepack enable pnpm
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY services/orders-service/package.json services/orders-service/package.json
-
-RUN pnpm install --frozen-lockfile --prod --filter ./services/orders-service...
-
+COPY --from=build /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/services/orders-service/dist ./dist
 COPY contracts/proto /usr/contracts/proto
 
