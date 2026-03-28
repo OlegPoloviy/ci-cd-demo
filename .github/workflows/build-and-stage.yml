@@ -2,7 +2,7 @@ name: Build and push image to the registry
 
 on:
   push:
-    branches: [develop]
+    branches: [develop, main]
 
 permissions:
   contents: read
@@ -63,6 +63,7 @@ jobs:
             --arg pd "$PAYMENTS_DIGEST" \
             '{
               commit: $commit,
+              image_tag: $tag,
               services: {
                 "orders-api": {
                   image: ("ghcr.io/" + $owner + "/orders-api:" + $tag),
@@ -83,6 +84,7 @@ jobs:
 
   deploy_stage:
     name: Deploy to stage
+    if: github.ref == 'refs/heads/develop'
     runs-on: self-hosted
     needs: build_and_push
 
