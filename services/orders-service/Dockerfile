@@ -36,20 +36,22 @@ COPY contracts ./contracts
 WORKDIR /usr/src/app/services/orders-service
 
 FROM node:20-alpine AS prod
-WORKDIR /usr/src/app
+WORKDIR /usr/src/app/services/orders-service
 RUN corepack enable pnpm
 
-COPY --from=build /usr/src/app/node_modules ./node_modules
+COPY --from=build /usr/src/app/node_modules /usr/src/app/node_modules
+COPY --from=build /usr/src/app/services/orders-service/node_modules ./node_modules
 COPY --from=build /usr/src/app/services/orders-service/dist ./dist
 COPY contracts/proto /repo/contracts/proto
 
-RUN chown -R node:node /usr/src/app
+RUN mkdir -p /repo/contracts/proto && chown -R node:node /usr/src/app /repo
 USER node
 CMD ["node", "dist/src/main.js"]
 
 FROM gcr.io/distroless/nodejs20-debian12:nonroot AS prod-distroless
-WORKDIR /usr/src/app
-COPY --chown=nonroot:nonroot --from=prod /usr/src/app/node_modules ./node_modules
-COPY --chown=nonroot:nonroot --from=prod /usr/src/app/dist ./dist
+WORKDIR /usr/src/app/services/orders-service
+COPY --chown=nonroot:nonroot --from=prod /usr/src/app/node_modules /usr/src/app/node_modules
+COPY --chown=nonroot:nonroot --from=prod /usr/src/app/services/orders-service/node_modules ./node_modules
+COPY --chown=nonroot:nonroot --from=prod /usr/src/app/services/orders-service/dist ./dist
 COPY --chown=nonroot:nonroot contracts/proto /repo/contracts/proto
 CMD ["dist/src/main.js"]
