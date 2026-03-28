@@ -115,6 +115,27 @@ jobs:
           jq -r '.services["payments"].image' release-manifest.json >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
 
+      - name: Write deploy/.env.stage from Environment secrets
+        run: |
+          mkdir -p deploy
+          cat > deploy/.env.stage <<EOF
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          PAYMENTS_DB_USER=${{ secrets.PAYMENTS_DB_USER }}
+          PAYMENTS_DB_PASSWORD=${{ secrets.PAYMENTS_DB_PASSWORD }}
+          PAYMENTS_DB_NAME=${{ secrets.PAYMENTS_DB_NAME }}
+          RABBIT_USER=${{ secrets.RABBIT_USER }}
+          RABBIT_PASSWORD=${{ secrets.RABBIT_PASSWORD }}
+          MINIO_ROOT_USER=${{ secrets.MINIO_ROOT_USER }}
+          MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}
+          MINIO_API_PORT=${{ secrets.MINIO_API_PORT }}
+          MINIO_CONSOLE_PORT=${{ secrets.MINIO_CONSOLE_PORT }}
+          PAYMENTS_GRPC_PORT=${{ secrets.PAYMENTS_GRPC_PORT }}
+          PORT=${{ secrets.PORT }}
+          EOF
+
       - name: Login to GHCR
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
