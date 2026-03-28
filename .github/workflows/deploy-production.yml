@@ -1,0 +1,161 @@
+name: Deploy production
+
+on:
+  workflow_run:
+    workflows: ['Build and push image to the registry']
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy_production:
+    name: Deploy to production
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: self-hosted
+
+    environment:
+      name: production
+      url: http://localhost:8081
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download release manifest from triggering run
+        uses: actions/download-artifact@v4
+        with:
+          name: release-manifest
+          path: .
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show manifest
+        run: |
+          ls -la
+          cat release-manifest.json
+
+      - name: Read manifest
+        run: |
+          echo "ORDERS_IMAGE=$(jq -r '.services[\"orders-api\"].image' release-manifest.json)" >> $GITHUB_ENV
+          echo "PAYMENTS_IMAGE=$(jq -r '.services[\"payments\"].image' release-manifest.json)" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$(jq -r '.image_tag // empty' release-manifest.json)" >> $GITHUB_ENV
+          echo "COMMIT_SHA=$(jq -r '.commit' release-manifest.json)" >> $GITHUB_ENV
+          echo "ORDERS_DIGEST=$(jq -r '.services[\"orders-api\"].digest' release-manifest.json)" >> $GITHUB_ENV
+          echo "PAYMENTS_DIGEST=$(jq -r '.services[\"payments\"].digest' release-manifest.json)" >> $GITHUB_ENV
+
+      - name: Print deploy metadata
+        run: |
+          echo "=== PRODUCTION DEPLOY ==="
+          echo "Target environment: production"
+          echo "Source workflow run id: ${{ github.event.workflow_run.id }}"
+          echo "Commit SHA: ${COMMIT_SHA}"
+          echo "Image tag: ${IMAGE_TAG}"
+          echo "Orders image: ${ORDERS_IMAGE}"
+          echo "Orders digest: ${ORDERS_DIGEST}"
+          echo "Payments image: ${PAYMENTS_IMAGE}"
+          echo "Payments digest: ${PAYMENTS_DIGEST}"
+
+      - name: Write deploy/.env.production from Environment secrets
+        working-directory: ${{ github.workspace }}
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          PAYMENTS_GRPC_PORT: ${{ secrets.PAYMENTS_GRPC_PORT }}
+          PAYMENTS_GRPC_TIMEOUT_MS: ${{ secrets.PAYMENTS_GRPC_TIMEOUT_MS }}
+          PAYMENTS_GRPC_BIND_URL: ${{ secrets.PAYMENTS_GRPC_BIND_URL }}
+          DB_HOST_PORT: ${{ secrets.DB_HOST_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_BUCKET: ${{ secrets.AWS_BUCKET }}
+          AWS_ENDPOINT: ${{ secrets.AWS_ENDPOINT }}
+          CLOUDFRONT_BASE_URL: ${{ secrets.CLOUDFRONT_BASE_URL }}
+          RABBIT_USER: ${{ secrets.RABBIT_USER }}
+          RABBIT_PASSWORD: ${{ secrets.RABBIT_PASSWORD }}
+          RABBITMQ_PREFETCH: ${{ secrets.RABBITMQ_PREFETCH }}
+          RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
+          RABBIT_QUEUE_ORDERS: ${{ secrets.RABBIT_QUEUE_ORDERS }}
+          RABBIT_QUEUE_DLQ: ${{ secrets.RABBIT_QUEUE_DLQ }}
+          RABBIT_RETRY_COUNT: ${{ secrets.RABBIT_RETRY_COUNT }}
+          RABBIT_RETRY_DELAY: ${{ secrets.RABBIT_RETRY_DELAY }}
+          PAYMENTS_DB_HOST: ${{ secrets.PAYMENTS_DB_HOST }}
+          PAYMENTS_DB_PORT: ${{ secrets.PAYMENTS_DB_PORT }}
+          PAYMENTS_DB_USER: ${{ secrets.PAYMENTS_DB_USER }}
+          PAYMENTS_DB_PASSWORD: ${{ secrets.PAYMENTS_DB_PASSWORD }}
+          PAYMENTS_DB_NAME: ${{ secrets.PAYMENTS_DB_NAME }}
+          MINIO_ROOT_USER: ${{ secrets.MINIO_ROOT_USER }}
+          MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
+          MINIO_API_PORT: ${{ secrets.MINIO_API_PORT }}
+          MINIO_CONSOLE_PORT: ${{ secrets.MINIO_CONSOLE_PORT }}
+          PORT: ${{ secrets.PORT }}
+        run: |
+          cat > deploy/.env.production <<EOF
+          ORDERS_IMAGE=${ORDERS_IMAGE}
+          PAYMENTS_IMAGE=${PAYMENTS_IMAGE}
+          NODE_ENV=production
+
+          # replace/add your real prod vars below
+          PORT=${{ vars.PROD_PORT }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          RABBITMQ_URL=${{ secrets.RABBITMQ_URL }}
+          EOF
+
+      - name: Preview env file safely
+        run: |
+          sed 's/=.*/=***/' deploy/.env.production
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Deploy production stack
+        run: |
+          docker compose \
+            -p myapp-prod \
+            --env-file deploy/.env.production \
+            -f deploy/compose.prod.yml \
+            pull
+
+          docker compose \
+            -p myapp-prod \
+            --env-file deploy/.env.production \
+            -f deploy/compose.prod.yml \
+            down --remove-orphans
+
+          docker compose \
+            -p myapp-prod \
+            --env-file deploy/.env.production \
+            -f deploy/compose.prod.yml \
+            up -d
+
+      - name: Show running containers
+        run: docker ps
+
+      - name: Production health check
+        run: |
+          for i in {1..20}; do
+            if curl --fail --silent --show-error http://localhost:8081/health; then
+              echo "Production health check passed"
+              exit 0
+            fi
+            echo "Waiting for production service... attempt $i/20"
+            sleep 3
+          done
+
+          echo "Production health check failed"
+          docker ps
+          docker logs myapp-prod_orders-api_1 --tail 200 || true
+          exit 1
