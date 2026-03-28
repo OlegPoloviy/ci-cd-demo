@@ -5,7 +5,7 @@ WORKDIR /usr/src/app
 RUN corepack enable pnpm
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/orders-service/package.json services/orders-service/package.json
-COPY contracts/package.json contracts/package.json
+COPY contracts/ contracts/
 RUN pnpm install --frozen-lockfile
 
 FROM node:20-alpine AS build
@@ -41,7 +41,7 @@ RUN corepack enable pnpm
 
 COPY --from=build /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/services/orders-service/dist ./dist
-COPY contracts/proto /usr/contracts/proto
+COPY contracts/proto /repo/contracts/proto
 
 RUN chown -R node:node /usr/src/app
 USER node
@@ -51,5 +51,5 @@ FROM gcr.io/distroless/nodejs20-debian12:nonroot AS prod-distroless
 WORKDIR /usr/src/app
 COPY --chown=nonroot:nonroot --from=prod /usr/src/app/node_modules ./node_modules
 COPY --chown=nonroot:nonroot --from=prod /usr/src/app/dist ./dist
-COPY --chown=nonroot:nonroot contracts/proto /usr/contracts/proto
+COPY --chown=nonroot:nonroot contracts/proto /repo/contracts/proto
 CMD ["dist/src/main.js"]
