@@ -126,6 +126,7 @@ jobs:
           PAYMENTS_DB_USER=postgres
           PAYMENTS_DB_PASSWORD=postgres
           PAYMENTS_DB_NAME=payments
+          JWT_SECRET=supersecret
 
           RABBIT_USER=guest
           RABBIT_PASSWORD=guest
