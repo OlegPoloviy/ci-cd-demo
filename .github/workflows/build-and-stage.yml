@@ -85,7 +85,7 @@ jobs:
   deploy_stage:
     name: Deploy to stage
     if: github.ref == 'refs/heads/develop'
-    runs-on: self-hosted
+    runs-on: [self-hosted, stage]
     needs: build_and_push
 
     environment:
