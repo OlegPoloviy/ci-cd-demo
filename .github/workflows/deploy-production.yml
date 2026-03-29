@@ -29,7 +29,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Download release manifest from triggering run
+      - name: Download release manifest from selected run
         uses: actions/download-artifact@v4
         with:
           name: release-manifest
@@ -37,34 +37,33 @@ jobs:
           run-id: ${{ inputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Show manifest
+      - name: Read manifest, print metadata, and write env file
+        shell: bash
         run: |
-          ls -la
-          cat release-manifest.json
+          set -euo pipefail
 
-      - name: Read manifest
-        run: |
-          echo "ORDERS_IMAGE=$(jq -r '.services[\"orders-api\"].image' release-manifest.json)" >> $GITHUB_ENV
-          echo "PAYMENTS_IMAGE=$(jq -r '.services[\"payments\"].image' release-manifest.json)" >> $GITHUB_ENV
-          echo "IMAGE_TAG=$(jq -r '.image_tag // empty' release-manifest.json)" >> $GITHUB_ENV
-          echo "COMMIT_SHA=$(jq -r '.commit' release-manifest.json)" >> $GITHUB_ENV
-          echo "ORDERS_DIGEST=$(jq -r '.services[\"orders-api\"].digest' release-manifest.json)" >> $GITHUB_ENV
-          echo "PAYMENTS_DIGEST=$(jq -r '.services[\"payments\"].digest' release-manifest.json)" >> $GITHUB_ENV
+          test -f release-manifest.json
 
-      - name: Print deploy metadata
-        run: |
+          ORDERS_IMAGE=$(jq -r '.services["orders-api"].image' release-manifest.json)
+          PAYMENTS_IMAGE=$(jq -r '.services["payments"].image' release-manifest.json)
+          IMAGE_TAG=$(jq -r '.image_tag // empty' release-manifest.json)
+          COMMIT_SHA=$(jq -r '.commit' release-manifest.json)
+          ORDERS_DIGEST=$(jq -r '.services["orders-api"].digest' release-manifest.json)
+          PAYMENTS_DIGEST=$(jq -r '.services["payments"].digest' release-manifest.json)
+
+          test -n "$ORDERS_IMAGE"
+          test -n "$PAYMENTS_IMAGE"
+
           echo "=== PRODUCTION DEPLOY ==="
           echo "Target environment: production"
-          echo "Source workflow run id: ${{ inputs.run_id }}"          
-          echo "Commit SHA: ${COMMIT_SHA}"
-          echo "Image tag: ${IMAGE_TAG}"
-          echo "Orders image: ${ORDERS_IMAGE}"
-          echo "Orders digest: ${ORDERS_DIGEST}"
-          echo "Payments image: ${PAYMENTS_IMAGE}"
-          echo "Payments digest: ${PAYMENTS_DIGEST}"
+          echo "Source workflow run id: ${{ inputs.run_id }}"
+          echo "Commit SHA: $COMMIT_SHA"
+          echo "Image tag: $IMAGE_TAG"
+          echo "Orders image: $ORDERS_IMAGE"
+          echo "Orders digest: $ORDERS_DIGEST"
+          echo "Payments image: $PAYMENTS_IMAGE"
+          echo "Payments digest: $PAYMENTS_DIGEST"
 
-      - name: Write deploy/.env.production
-        run: |
           cat > deploy/.env.production <<EOF
           ORDERS_IMAGE=$ORDERS_IMAGE
           PAYMENTS_IMAGE=$PAYMENTS_IMAGE
@@ -97,19 +96,19 @@ jobs:
         run: |
           grep -E '^[A-Z0-9_]+=' deploy/.env.production | sed 's/=.*/=***/'
 
-      - name: Login to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-      - name: Debug image refs
+      - name: Debug rendered compose
         run: |
-          echo "ORDERS_IMAGE=${ORDERS_IMAGE}"
-          echo "PAYMENTS_IMAGE=${PAYMENTS_IMAGE}"
-          echo "----- manifest -----"
-          cat release-manifest.json
+          echo "----- image refs from env file -----"
+          grep '^ORDERS_IMAGE=' deploy/.env.production
+          grep '^PAYMENTS_IMAGE=' deploy/.env.production
           echo "----- rendered compose -----"
           docker-compose --env-file deploy/.env.production -f deploy/compose.prod.yml config
 
-      - name: Deploy production stack
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Pull production images
         run: |
           docker-compose \
             -p myapp-prod \
@@ -117,6 +116,8 @@ jobs:
             -f deploy/compose.prod.yml \
             pull
 
+      - name: Recreate production stack
+        run: |
           docker-compose \
             -p myapp-prod \
             --env-file deploy/.env.production \
@@ -133,6 +134,7 @@ jobs:
         run: docker ps
 
       - name: Production health check
+        shell: bash
         run: |
           for i in {1..20}; do
             if curl --fail --silent --show-error http://localhost:8081/health; then
