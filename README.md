@@ -82,4 +82,15 @@ Deploy same images to production
 
 # Proof screenshots
 
-Pr check
+Pr chack
+<img width="858" height="330" alt="image" src="https://github.com/user-attachments/assets/e38186db-2ae7-46ec-9324-d9857651084e" />
+
+Build & stage deploy
+<img width="1238" height="826" alt="image" src="https://github.com/user-attachments/assets/6797cce0-ad4b-4a4d-a5a6-00147c26458d" />
+
+Approval screen
+<img width="903" height="77" alt="image" src="https://github.com/user-attachments/assets/d1ba8b91-b8d2-4140-8823-5450ce8de4ec" />
+
+Production deploy
+<img width="1228" height="1036" alt="image" src="https://github.com/user-attachments/assets/51ded47c-2972-45bb-980c-ce45eeef6cd8" />
+
