@@ -135,6 +135,15 @@ jobs:
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
+      - name: Debug image refs
+        run: |
+          echo "ORDERS_IMAGE=${ORDERS_IMAGE}"
+          echo "PAYMENTS_IMAGE=${PAYMENTS_IMAGE}"
+          echo "----- manifest -----"
+          cat release-manifest.json
+          echo "----- rendered compose -----"
+          docker-compose --env-file deploy/.env.production -f deploy/compose.prod.yml config
+
       - name: Deploy production stack
         run: |
           docker-compose \
