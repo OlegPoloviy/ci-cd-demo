@@ -1,10 +1,11 @@
 name: Deploy production
 
 on:
-  workflow_run:
-    workflows: ['Build and push image to the registry']
-    types: [completed]
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Run ID of successful develop build to deploy'
+        required: true
 
 permissions:
   contents: read
@@ -18,7 +19,6 @@ concurrency:
 jobs:
   deploy_production:
     name: Deploy to production
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: self-hosted
 
     environment:
@@ -34,7 +34,7 @@ jobs:
         with:
           name: release-manifest
           path: .
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ inputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Show manifest
@@ -55,7 +55,7 @@ jobs:
         run: |
           echo "=== PRODUCTION DEPLOY ==="
           echo "Target environment: production"
-          echo "Source workflow run id: ${{ github.event.workflow_run.id }}"
+          echo "Source workflow run id: ${{ inputs.run_id }}"          
           echo "Commit SHA: ${COMMIT_SHA}"
           echo "Image tag: ${IMAGE_TAG}"
           echo "Orders image: ${ORDERS_IMAGE}"
@@ -107,35 +107,49 @@ jobs:
           PAYMENTS_IMAGE=${PAYMENTS_IMAGE}
           NODE_ENV=production
 
-          # replace/add your real prod vars below
-          PORT=${{ vars.PROD_PORT }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_NAME=${{ secrets.DB_NAME }}
+
+          RABBIT_USER=${{ secrets.RABBIT_USER }}
+          RABBIT_PASSWORD=${{ secrets.RABBIT_PASSWORD }}
+
+          MINIO_ROOT_USER=${{ secrets.MINIO_ROOT_USER }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          RABBITMQ_URL=${{ secrets.RABBITMQ_URL }}
+          MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}
+
+          PAYMENTS_DB_USER=${{ secrets.PAYMENTS_DB_USER }}
+          PAYMENTS_DB_PASSWORD=${{ secrets.PAYMENTS_DB_PASSWORD }}
+          PAYMENTS_DB_NAME=${{ secrets.PAYMENTS_DB_NAME }}
+
+          PORT=${{ secrets.PORT }}
+          PAYMENTS_GRPC_PORT=${{ secrets.PAYMENTS_GRPC_PORT }}
+          MINIO_API_PORT=${{ secrets.MINIO_API_PORT }}
+          MINIO_CONSOLE_PORT=${{ secrets.MINIO_CONSOLE_PORT }}
           EOF
 
       - name: Preview env file safely
         run: |
-          sed 's/=.*/=***/' deploy/.env.production
+          grep -E '^[A-Z0-9_]+=' deploy/.env.production | sed 's/=.*/=***/'
 
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Deploy production stack
         run: |
-          docker compose \
+          docker-compose \
             -p myapp-prod \
             --env-file deploy/.env.production \
             -f deploy/compose.prod.yml \
             pull
 
-          docker compose \
+          docker-compose \
             -p myapp-prod \
             --env-file deploy/.env.production \
             -f deploy/compose.prod.yml \
             down --remove-orphans
 
-          docker compose \
+          docker-compose \
             -p myapp-prod \
             --env-file deploy/.env.production \
             -f deploy/compose.prod.yml \
