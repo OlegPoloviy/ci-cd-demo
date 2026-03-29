@@ -2,7 +2,7 @@ name: Build and push image to the registry
 
 on:
   push:
-    branches: [develop, main]
+    branches: [develop]
 
 permissions:
   contents: read

@@ -123,19 +123,19 @@ jobs:
 
       - name: Deploy production stack
         run: |
-          docker compose \
+          docker-compose \
             -p myapp-prod \
             --env-file deploy/.env.production \
             -f deploy/compose.prod.yml \
             pull
 
-          docker compose \
+          docker-compose \
             -p myapp-prod \
             --env-file deploy/.env.production \
             -f deploy/compose.prod.yml \
             down --remove-orphans
 
-          docker compose \
+          docker-compose \
             -p myapp-prod \
             --env-file deploy/.env.production \
             -f deploy/compose.prod.yml \
