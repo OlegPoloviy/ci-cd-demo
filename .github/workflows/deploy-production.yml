@@ -1,10 +1,11 @@
 name: Deploy production
 
 on:
-  workflow_run:
-    workflows: ['Build and push image to the registry']
-    types: [completed]
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Run ID of successful develop build to deploy'
+        required: true
 
 permissions:
   contents: read
@@ -18,7 +19,6 @@ concurrency:
 jobs:
   deploy_production:
     name: Deploy to production
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: self-hosted
 
     environment:
@@ -34,7 +34,7 @@ jobs:
         with:
           name: release-manifest
           path: .
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ inputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Show manifest
@@ -55,7 +55,7 @@ jobs:
         run: |
           echo "=== PRODUCTION DEPLOY ==="
           echo "Target environment: production"
-          echo "Source workflow run id: ${{ github.event.workflow_run.id }}"
+          echo "Source workflow run id: ${{ inputs.run_id }}"          
           echo "Commit SHA: ${COMMIT_SHA}"
           echo "Image tag: ${IMAGE_TAG}"
           echo "Orders image: ${ORDERS_IMAGE}"
