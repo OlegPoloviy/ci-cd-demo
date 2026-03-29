@@ -38,6 +38,7 @@ jobs:
           file: services/orders-service/Dockerfile
           target: prod-distroless
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ghcr.io/${{ env.OWNER_LC }}/orders-api:${{ env.IMAGE_TAG }}
 
       - name: Build and push payments
@@ -48,6 +49,7 @@ jobs:
           file: services/payments-service/Dockerfile
           target: prod
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ghcr.io/${{ env.OWNER_LC }}/payments:${{ env.IMAGE_TAG }}
 
       - name: Write release-manifest.json
