@@ -63,48 +63,12 @@ jobs:
           echo "Payments image: ${PAYMENTS_IMAGE}"
           echo "Payments digest: ${PAYMENTS_DIGEST}"
 
-      - name: Write deploy/.env.production from Environment secrets
-        working-directory: ${{ github.workspace }}
-        env:
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          PAYMENTS_GRPC_PORT: ${{ secrets.PAYMENTS_GRPC_PORT }}
-          PAYMENTS_GRPC_TIMEOUT_MS: ${{ secrets.PAYMENTS_GRPC_TIMEOUT_MS }}
-          PAYMENTS_GRPC_BIND_URL: ${{ secrets.PAYMENTS_GRPC_BIND_URL }}
-          DB_HOST_PORT: ${{ secrets.DB_HOST_PORT }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_BUCKET: ${{ secrets.AWS_BUCKET }}
-          AWS_ENDPOINT: ${{ secrets.AWS_ENDPOINT }}
-          CLOUDFRONT_BASE_URL: ${{ secrets.CLOUDFRONT_BASE_URL }}
-          RABBIT_USER: ${{ secrets.RABBIT_USER }}
-          RABBIT_PASSWORD: ${{ secrets.RABBIT_PASSWORD }}
-          RABBITMQ_PREFETCH: ${{ secrets.RABBITMQ_PREFETCH }}
-          RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
-          RABBIT_QUEUE_ORDERS: ${{ secrets.RABBIT_QUEUE_ORDERS }}
-          RABBIT_QUEUE_DLQ: ${{ secrets.RABBIT_QUEUE_DLQ }}
-          RABBIT_RETRY_COUNT: ${{ secrets.RABBIT_RETRY_COUNT }}
-          RABBIT_RETRY_DELAY: ${{ secrets.RABBIT_RETRY_DELAY }}
-          PAYMENTS_DB_HOST: ${{ secrets.PAYMENTS_DB_HOST }}
-          PAYMENTS_DB_PORT: ${{ secrets.PAYMENTS_DB_PORT }}
-          PAYMENTS_DB_USER: ${{ secrets.PAYMENTS_DB_USER }}
-          PAYMENTS_DB_PASSWORD: ${{ secrets.PAYMENTS_DB_PASSWORD }}
-          PAYMENTS_DB_NAME: ${{ secrets.PAYMENTS_DB_NAME }}
-          MINIO_ROOT_USER: ${{ secrets.MINIO_ROOT_USER }}
-          MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
-          MINIO_API_PORT: ${{ secrets.MINIO_API_PORT }}
-          MINIO_CONSOLE_PORT: ${{ secrets.MINIO_CONSOLE_PORT }}
-          PORT: ${{ secrets.PORT }}
+      - name: Write deploy/.env.production
         run: |
           cat > deploy/.env.production <<EOF
-          ORDERS_IMAGE=${ORDERS_IMAGE}
-          PAYMENTS_IMAGE=${PAYMENTS_IMAGE}
+          ORDERS_IMAGE=$ORDERS_IMAGE
+          PAYMENTS_IMAGE=$PAYMENTS_IMAGE
+
           NODE_ENV=production
 
           DB_USER=${{ secrets.DB_USER }}
@@ -115,17 +79,18 @@ jobs:
           RABBIT_PASSWORD=${{ secrets.RABBIT_PASSWORD }}
 
           MINIO_ROOT_USER=${{ secrets.MINIO_ROOT_USER }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
           MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}
 
           PAYMENTS_DB_USER=${{ secrets.PAYMENTS_DB_USER }}
           PAYMENTS_DB_PASSWORD=${{ secrets.PAYMENTS_DB_PASSWORD }}
           PAYMENTS_DB_NAME=${{ secrets.PAYMENTS_DB_NAME }}
 
-          PORT=${{ secrets.PORT }}
-          PAYMENTS_GRPC_PORT=${{ secrets.PAYMENTS_GRPC_PORT }}
-          MINIO_API_PORT=${{ secrets.MINIO_API_PORT }}
-          MINIO_CONSOLE_PORT=${{ secrets.MINIO_CONSOLE_PORT }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+
+          PORT=${{ vars.PORT }}
+          PAYMENTS_GRPC_PORT=${{ vars.PAYMENTS_GRPC_PORT }}
+          MINIO_API_PORT=${{ vars.MINIO_API_PORT }}
+          MINIO_CONSOLE_PORT=${{ vars.MINIO_CONSOLE_PORT }}
           EOF
 
       - name: Preview env file safely
@@ -134,6 +99,15 @@ jobs:
 
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Debug image refs
+        run: |
+          echo "ORDERS_IMAGE=${ORDERS_IMAGE}"
+          echo "PAYMENTS_IMAGE=${PAYMENTS_IMAGE}"
+          echo "----- manifest -----"
+          cat release-manifest.json
+          echo "----- rendered compose -----"
+          docker-compose --env-file deploy/.env.production -f deploy/compose.prod.yml config
 
       - name: Deploy production stack
         run: |
