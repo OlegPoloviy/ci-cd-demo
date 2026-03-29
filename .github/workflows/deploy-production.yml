@@ -19,7 +19,7 @@ concurrency:
 jobs:
   deploy_production:
     name: Deploy to production
-    runs-on: self-hosted
+    runs-on: [self-hosted, prod]
 
     environment:
       name: production
