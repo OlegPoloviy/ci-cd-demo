@@ -7,6 +7,7 @@ import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { FilesService } from './files.service';
 import { PresignFileDto } from './dto/presign-file.dto';
 import { CompleteFileDto } from './dto/complete-file.dto';
+import { StrictThrottle } from 'src/common/decorators/throttle.decorators';
 
 @Controller('files')
 export class FilesController {
@@ -17,6 +18,7 @@ export class FilesController {
   @UseGuards(JwtAuthGuard, UserRoleGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Generate presigned URL for product image upload' })
+  @StrictThrottle()
   async generatePresignedUrl(@Request() req, @Body() dto: PresignFileDto) {
     const adminId = req.user.id;
 
@@ -28,6 +30,7 @@ export class FilesController {
   @UseGuards(JwtAuthGuard, UserRoleGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Complete file upload and bind to entity' })
+  @StrictThrottle()
   async completeUpload(@Request() req, @Body() dto: CompleteFileDto) {
     const adminId = req.user.id;
     return this.filesService.completeUpload(dto, adminId);

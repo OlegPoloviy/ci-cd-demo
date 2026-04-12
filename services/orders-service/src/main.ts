@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { AllExceptionFilter } from './common/filters/all-exception.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { RequestContextMiddleware } from './common/middlewares/request-context.middleware';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -24,6 +25,8 @@ async function bootstrap() {
   );
 
   app.use(new RequestContextMiddleware().use);
+
+  app.use(helmet());
 
   app.useGlobalFilters(new AllExceptionFilter());
   const config = new DocumentBuilder()

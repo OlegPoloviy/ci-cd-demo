@@ -24,7 +24,10 @@ RUN pnpm --filter ./services/orders-service... run build
 
 FROM node:20-alpine AS tools
 WORKDIR /usr/src/app
-RUN corepack enable pnpm && corepack prepare pnpm@10.31.0 --activate
+# Must match root package.json "packageManager" so Corepack does not try to
+# download a different pnpm at container runtime (breaks offline / bad DNS).
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable pnpm && corepack prepare pnpm@9.0.0 --activate
 
 COPY --from=dev /usr/src/app/node_modules ./node_modules
 COPY --from=dev /usr/src/app/package.json ./package.json

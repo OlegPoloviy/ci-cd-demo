@@ -4,6 +4,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { OrderResolver } from '../orders/graphql/order.resolver';
 import { DataLoaderFactory } from '../../common/graphql/loaders/data-loader';
 import { LoadersModule } from 'src/common/graphql/loaders/loader.module';
+import { Request, Response } from 'express';
 
 @Module({
   imports: [
@@ -13,7 +14,9 @@ import { LoadersModule } from 'src/common/graphql/loaders/loader.module';
         autoSchemaFile: true,
         graphiql: true,
         introspection: true,
-        context: () => ({
+        context: ({ req, res }: { req: Request; res: Response }) => ({
+          req,
+          res,
           loaders: dataLoaderFactory.createLoader(),
         }),
       }),
