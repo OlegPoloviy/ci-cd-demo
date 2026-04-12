@@ -9,8 +9,6 @@ export class TestGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
 
-    console.log(authHeader);
-
     return authHeader ? true : false;
   }
 }

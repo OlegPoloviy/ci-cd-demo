@@ -93,6 +93,7 @@ services:
       - .env
     environment:
       PAYMENTS_DB_HOST: payments-db
+      PAYMENTS_DB_PORT: '5432'
     networks:
       - db-network
     depends_on:
@@ -107,6 +108,7 @@ services:
       - .env
     environment:
       PAYMENTS_DB_HOST: payments-db
+      PAYMENTS_DB_PORT: '5432'
       PAYMENTS_GRPC_BIND_URL: 0.0.0.0:${PAYMENTS_GRPC_PORT:-50051}
     ports:
       - '${PAYMENTS_GRPC_PORT:-50051}:${PAYMENTS_GRPC_PORT:-50051}'

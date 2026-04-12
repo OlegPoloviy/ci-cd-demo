@@ -29,23 +29,23 @@ export class UserControllerV2 {
   constructor(private readonly userService: UserService) {}
 
   @UseInterceptors(ClassSerializerInterceptor)
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Create user (v2)',
     description:
       'Preferred input is `profile`. Legacy `name` is accepted for migration (deprecated).',
   })
   @ApiCreatedResponse({ type: UserV2ResponseDto })
-  // @ApiBearerAuth('access-token')
+  @ApiBearerAuth('access-token')
   @Post()
   async create(@Body() dto: UserDtoV2) {
     return this.userService.addUserV2(dto);
   }
 
-  // @ApiBearerAuth('access-token')
+  @ApiBearerAuth('access-token')
   @Patch(':id/role')
-  // @Roles(UserRole.ADMIN)
-  // @UseGuards(JwtAuthGuard, UserRoleGuard)
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   @ApiOperation({
     summary: 'Assign roles to user',
     description: 'Assign one or more roles to a user by their ID.',
