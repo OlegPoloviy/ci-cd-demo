@@ -17,6 +17,8 @@ import { FilesController } from './modules/files/files.controller';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { OrderTrackingModule } from './modules/order-tracking/order-tracking.module';
 import { RabbitmqModule } from './modules/rabbitmq/rabbitmq.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -34,9 +36,29 @@ import { RabbitmqModule } from './modules/rabbitmq/rabbitmq.module';
     RealtimeModule,
     OrderTrackingModule,
     RabbitmqModule,
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          name: 'basic',
+          ttl: 60000,
+          limit: 100,
+        },
+        {
+          name: 'strict',
+          ttl: 60000,
+          limit: 5,
+        },
+      ],
+    }),
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {
   // configure(consumer: MiddlewareConsumer) {

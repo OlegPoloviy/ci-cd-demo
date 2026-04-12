@@ -10,12 +10,14 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './types/login.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { StrictThrottle } from 'src/common/decorators/throttle.decorators';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
+  @StrictThrottle()
   async login(@Body() body: LoginDto): Promise<{ accessToken: string }> {
     return this.authService.login(body);
   }
