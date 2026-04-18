@@ -31,14 +31,14 @@ export class UserControllerV2 {
   constructor(private readonly userService: UserService) {}
 
   @UseInterceptors(ClassSerializerInterceptor)
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Create user (v2)',
     description:
       'Preferred input is `profile`. Legacy `name` is accepted for migration (deprecated).',
   })
   @ApiCreatedResponse({ type: UserV2ResponseDto })
-  // @ApiBearerAuth('access-token')
+  @ApiBearerAuth('access-token')
   @Post()
   async create(@Body() dto: UserDtoV2) {
     return this.userService.addUserV2(dto);
@@ -53,7 +53,11 @@ export class UserControllerV2 {
     description: 'Assign one or more roles to a user by their ID.',
   })
   @StrictThrottle()
-  async assignRole(@Request() req, @Param('id') userId: string, @Body() dto: UpdateRoleDto) {
+  async assignRole(
+    @Request() req,
+    @Param('id') userId: string,
+    @Body() dto: UpdateRoleDto,
+  ) {
     return this.userService.updateRoles(userId, dto.roles, req.user);
   }
 }

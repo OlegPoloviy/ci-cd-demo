@@ -18,6 +18,7 @@ Project scope reviewed:
 - `JwtStrategy` validates bearer tokens and rejects expired tokens.
 - Swagger documents bearer authentication for protected endpoints.
 - WebSocket connections in the delivery gateway also verify a JWT during connection setup.
+- Login throttling is enabled on `/auth/login`.
 
 ### Remaining risk
 
@@ -30,7 +31,6 @@ Project scope reviewed:
 
 - Add refresh tokens or another controlled session renewal mechanism.
 - Add logout / token revocation strategy for compromised tokens.
-- Add rate limiting or login throttling for `/auth/login`.
 - Consider stricter JWT claims validation (`iss`, `aud`, key rotation plan).
 - Review every controller and make authentication requirements explicit.
 
@@ -89,6 +89,7 @@ Project scope reviewed:
 - Internal databases are placed on an internal Docker network.
 - Service-to-service communication is separated from the public-facing network in Compose.
 - The app is structured so TLS termination can be placed in front of it later.
+- `helmet()` is enabled on the HTTP service and baseline security headers are returned by the app.
 
 ### Remaining risk
 
@@ -96,7 +97,7 @@ Project scope reviewed:
 - `payments-service` gRPC transport is configured without TLS.
 - MinIO and CloudFront-style file URLs can fall back to plain HTTP.
 - RabbitMQ management and service ports are exposed in Compose.
-- There is no evidence of HSTS, secure cookies, HTTPS redirect, or mTLS for internal service calls.
+- There is still no HTTPS redirect, secure-cookie flow, or mTLS for internal service calls.
 
 ### Backlog / TODO
 
@@ -117,16 +118,11 @@ Project scope reviewed:
 
 ### Remaining risk
 
-- There is no visible global rate limiting, anti-automation control, or abuse throttling.
-- CORS is enabled broadly (`cors: true`) rather than being restricted to known origins.
 - File metadata is validated, but there is no strong server-side allowlist for file type, extension, size ceilings, malware scanning, or content verification.
-- WebSocket events do not appear to have message rate controls.
 - Open order/user endpoints increase the abuse surface even if DTO validation exists.
 
 ### Backlog / TODO
 
-- Add rate limiting for login, public APIs, and WebSocket message flows.
-- Restrict CORS to approved origins by environment.
 - Add file upload allowlists and maximum file-size enforcement on the server side.
 - Consider malware scanning or async quarantine for uploaded files.
 - Add request size/body limits where appropriate.
@@ -134,6 +130,8 @@ Project scope reviewed:
 ### What I've done
 
 - Added strict and default rate limiting
+- Added strict login throttling for `/auth/login`
+- Added stricter throttling for risky REST/GraphQL/WebSocket actions
 - Added security headers with the help of helmet
 - Added strict CORS policy
 
@@ -145,19 +143,24 @@ Project scope reviewed:
 - The service has request-context support and a request ID middleware.
 - Errors are sanitized for 500 responses so raw internals are not returned to clients.
 - Some business events are logged, for example payment authorization and order-processing flow.
+- Request ID is now wired globally and propagated into request context.
+- Structured audit logging is implemented for login success/failure, role changes, and privileged file-upload actions.
 
 ### Remaining risk
 
-- Request ID middleware is present but does not appear to be wired globally in the module configuration, so correlation may be incomplete.
 - Logging is mostly operational, not audit-grade.
-- There is no dedicated audit trail for security-relevant actions such as login success/failure, role changes, privileged file actions, or admin operations.
-- Logs may still miss actor identity, target resource, and decision outcome in a structured way.
 - There is no visible retention, alerting, or tamper-resistance strategy.
 
 ### Backlog / TODO
 
-- Wire request ID/correlation ID consistently across all entry points.
-- Add structured logs for login attempts, role changes, file-upload completion, and privileged actions.
-- Define a minimal audit event schema: actor, action, target, result, timestamp, request ID.
 - Add alerts for repeated auth failures and suspicious access patterns.
 - Review logs to ensure secrets and tokens are never written.
+
+### What I've done
+
+- Wired `requestId`/`correlationId` into the global request context.
+- Added a structured audit event schema with actor, action, target, outcome, timestamp, request ID, IP, and user agent.
+- Added dedicated audit events for:
+  - login success / failure
+  - role changes
+  - privileged file upload actions
