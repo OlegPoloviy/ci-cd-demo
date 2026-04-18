@@ -6,6 +6,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProfileEntity } from './profile.entity';
 import * as bcrypt from 'bcrypt';
+import { AuditService } from 'src/common/audit/audit.service';
+import { AuthUser } from '../auth/types/auth.types';
 
 @Injectable()
 export class UserService {
@@ -14,6 +16,7 @@ export class UserService {
     private readonly usersRepository: Repository<UserEntity>,
     @InjectRepository(ProfileEntity)
     private readonly profilesRepository: Repository<ProfileEntity>,
+    private readonly auditService: AuditService,
   ) {}
 
   async getAll(limit?: number) {
@@ -72,12 +75,41 @@ export class UserService {
     return this.usersRepository.findOne({ where: { id } });
   }
 
-  async updateRoles(id: string, roles: string[]) {
-    const updateResult = await this.usersRepository.update(id, { roles });
+  async updateRoles(id: string, roles: string[], actor?: AuthUser) {
+    const existingUser = await this.usersRepository.findOne({ where: { id } });
 
-    if (updateResult.affected === 0) {
+    if (!existingUser) {
+      this.auditService.log({
+        action: 'user.roles.update',
+        actorId: actor?.sub ?? null,
+        actorRoles: actor?.roles ?? [],
+        actorScopes: actor?.scopes ?? [],
+        targetType: 'user',
+        targetId: id,
+        outcome: 'failure',
+        reason: 'user_not_found',
+        metadata: {
+          nextRoles: roles,
+        },
+      });
       throw new NotFoundException(`User with id ${id} not found`);
     }
+
+    await this.usersRepository.update(id, { roles });
+
+    this.auditService.log({
+      action: 'user.roles.update',
+      actorId: actor?.sub ?? null,
+      actorRoles: actor?.roles ?? [],
+      actorScopes: actor?.scopes ?? [],
+      targetType: 'user',
+      targetId: id,
+      outcome: 'success',
+      metadata: {
+        previousRoles: existingUser.roles ?? [],
+        nextRoles: roles,
+      },
+    });
 
     return { message: 'Roles updated successfully' };
   }

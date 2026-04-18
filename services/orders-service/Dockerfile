@@ -33,6 +33,7 @@ COPY --from=dev /usr/src/app/node_modules ./node_modules
 COPY --from=dev /usr/src/app/package.json ./package.json
 COPY --from=dev /usr/src/app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=dev /usr/src/app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=dev /usr/src/app/services/orders-service/node_modules ./services/orders-service/node_modules
 COPY services/orders-service ./services/orders-service
 COPY contracts ./contracts
 

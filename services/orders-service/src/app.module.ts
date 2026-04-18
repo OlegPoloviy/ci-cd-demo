@@ -19,6 +19,7 @@ import { OrderTrackingModule } from './modules/order-tracking/order-tracking.mod
 import { RabbitmqModule } from './modules/rabbitmq/rabbitmq.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { AuditModule } from './common/audit/audit.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { APP_GUARD } from '@nestjs/core';
     RealtimeModule,
     OrderTrackingModule,
     RabbitmqModule,
+    AuditModule,
     ThrottlerModule.forRoot({
       throttlers: [
         {

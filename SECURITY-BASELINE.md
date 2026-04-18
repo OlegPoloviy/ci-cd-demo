@@ -50,7 +50,6 @@ Project scope reviewed:
 
 ### Backlog / TODO
 
-- Replace `TestGuard` with real JWT validation or remove the old v1 route set.
 - Protect order endpoints with explicit auth + authorization rules.
 - Define who can create/read/update orders: customer vs admin vs courier vs support.
 - Either implement scope-based authorization or remove unused scope fields until needed.
@@ -131,6 +130,12 @@ Project scope reviewed:
 - Add file upload allowlists and maximum file-size enforcement on the server side.
 - Consider malware scanning or async quarantine for uploaded files.
 - Add request size/body limits where appropriate.
+
+### What I've done
+
+- Added strict and default rate limiting
+- Added security headers with the help of helmet
+- Added strict CORS policy
 
 ## 6. Logging / Auditability
 

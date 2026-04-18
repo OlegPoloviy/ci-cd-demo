@@ -22,7 +22,7 @@ export class FilesController {
   async generatePresignedUrl(@Request() req, @Body() dto: PresignFileDto) {
     const adminId = req.user.id;
 
-    return this.filesService.presign(dto, adminId);
+    return this.filesService.presign(dto, adminId, req.user);
   }
 
   @Post('complete')
@@ -33,6 +33,6 @@ export class FilesController {
   @StrictThrottle()
   async completeUpload(@Request() req, @Body() dto: CompleteFileDto) {
     const adminId = req.user.id;
-    return this.filesService.completeUpload(dto, adminId);
+    return this.filesService.completeUpload(dto, adminId, req.user);
   }
 }
