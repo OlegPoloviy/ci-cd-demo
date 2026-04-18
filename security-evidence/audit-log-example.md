@@ -13,5 +13,6 @@ orders-api-1        | [Nest] 1  - 04/18/2026, 7:49:08 PM     LOG [AuditService] 
 Audit for updating a user role
 
 ```
-orders-api-1        | [Nest] 1  - 04/18/2026, 7:47:16 PM     LOG [AuditService] {"action":"user.roles.update","actorId":null,"actorRoles":["admin","user"],"actorScopes":[],"targetType":"user","targetId":"fcc96294-06f0-4749-9acf-c75051975a9a","outcome":"success","metadata":{"previousRoles":[],"nextRoles":["admin","user"]},"timestamp":"2026-04-18T19:47:16.532Z","correlationId":"d8a3b59b-9a91-4030-a033-dc92de1018ac","requestId":"d8a3b59b-9a91-4030-a033-dc92de1018ac","ip":"::ffff:172.20.0.1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0"}
+orders-api-1        | [Nest] 1  - 04/18/2026, 8:03:28 PM     LOG [AuditService] {"action":"user.roles.update","actorId":"f40de908-8d98-4c64-885c-38902d79fb0d","actorRoles":["admin","user"],"actorScopes":[],"targetType":"user","targetId":"46f54ad6-7c26-44bc-8155-39636da9cc88","outcome":"success","metadata":{"previousRoles":[],"nextRoles":["user"]},"timestamp":"2026-04-18T20:03:28.163Z","correlationId":"4c72c24e-eb1a-4a83-bc61-cd1416704627","requestId":"4c72c24e-eb1a-4a83-bc61-cd1416704627","ip":"::ffff:172.20.0.1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) Gecko/20100101 Firefox/149.0"}
+
 ```

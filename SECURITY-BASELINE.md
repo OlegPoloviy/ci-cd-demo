@@ -8,6 +8,16 @@ Project scope reviewed:
 - `payments-service` as the internal gRPC payment component
 - local/deploy Docker Compose configuration and environment handling
 
+## Risky Surface Areas
+
+| Surface area | Risk | Control before | What I added | Evidence | Residual risk |
+| --- | --- | --- | --- | --- | --- |
+| `POST /api/auth/login` | brute force / credential stuffing | JWT auth only | `strict` throttling + audit for login success/failure | `security-evidence/rate-limit.txt`, `security-evidence/audit-log-example.md` | no captcha / anomaly detection |
+| `PATCH /api/v2/user/:id/role` | privilege escalation / unauthorized role changes | role metadata + guard | `strict` throttling + structured audit log | `security-evidence/audit-log-example.md` | broader admin workflow review still needed |
+| `POST /api/files/presign` and `POST /api/files/complete` | abuse of privileged file operations | admin JWT + role guard | `strict` throttling + structured audit events | code path in `FilesService`, headers/rate-limit evidence in `security-evidence/` | no malware scanning / content allowlist yet |
+| GraphQL order queries | expensive query abuse / scraping | DTO and service validation | GraphQL throttling via `GqlThrottlerGuard` + `StrictThrottle()` | code config in `orders-service` + rate-limit headers | introspection/graphiql still enabled |
+| Public HTTP API surface | missing browser/API hardening | validation pipe | `helmet()` baseline headers + strict CORS allowlist | `security-evidence/headers.txt` | reverse proxy / trust proxy handling still limited |
+
 ## 1. Authentication / Session / JWT
 
 ### What I already have
@@ -25,7 +35,7 @@ Project scope reviewed:
 - The project currently uses access tokens only; there is no refresh-token flow, logout, token revocation, or session invalidation.
 - JWT validation is mostly signature + expiration based; there is no issuer/audience validation.
 - Some endpoints are still weakly protected or not protected at all, so authentication exists but is not applied consistently.
-- Login abuse protection is not visible yet, so brute-force attempts remain a realistic risk.
+- Brute-force protection is improved with throttling, but there is still no captcha, device reputation, or anomaly detection.
 
 ### Backlog / TODO
 

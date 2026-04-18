@@ -15,6 +15,7 @@ import { CompleteFileDto } from './dto/complete-file.dto';
 import * as path from 'path';
 import { AuditService } from 'src/common/audit/audit.service';
 import { AuthUser } from '../auth/types/auth.types';
+import { getActorId } from 'src/common/audit/audit.utils';
 
 @Injectable()
 export class FilesService {
@@ -49,7 +50,7 @@ export class FilesService {
 
       this.auditService.log({
         action: 'file.upload.presign',
-        actorId: actor?.sub ?? userId,
+        actorId: getActorId(actor) ?? userId,
         actorRoles: actor?.roles ?? [],
         actorScopes: actor?.scopes ?? [],
         targetType: 'file',
@@ -72,7 +73,7 @@ export class FilesService {
       console.error('Presign Error:', error);
       this.auditService.log({
         action: 'file.upload.presign',
-        actorId: actor?.sub ?? userId,
+        actorId: getActorId(actor) ?? userId,
         actorRoles: actor?.roles ?? [],
         actorScopes: actor?.scopes ?? [],
         targetType: 'file',
@@ -96,7 +97,7 @@ export class FilesService {
     if (!fileRecord) {
       this.auditService.log({
         action: 'file.upload.complete',
-        actorId: actor?.sub ?? userId,
+        actorId: getActorId(actor) ?? userId,
         actorRoles: actor?.roles ?? [],
         actorScopes: actor?.scopes ?? [],
         targetType: 'file',
@@ -110,7 +111,7 @@ export class FilesService {
     if (fileRecord.ownerId !== userId) {
       this.auditService.log({
         action: 'file.upload.complete',
-        actorId: actor?.sub ?? userId,
+        actorId: getActorId(actor) ?? userId,
         actorRoles: actor?.roles ?? [],
         actorScopes: actor?.scopes ?? [],
         targetType: 'file',
@@ -133,7 +134,7 @@ export class FilesService {
 
     this.auditService.log({
       action: 'file.upload.complete',
-      actorId: actor?.sub ?? userId,
+      actorId: getActorId(actor) ?? userId,
       actorRoles: actor?.roles ?? [],
       actorScopes: actor?.scopes ?? [],
       targetType: 'file',

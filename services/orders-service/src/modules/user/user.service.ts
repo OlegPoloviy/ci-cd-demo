@@ -8,6 +8,7 @@ import { ProfileEntity } from './profile.entity';
 import * as bcrypt from 'bcrypt';
 import { AuditService } from 'src/common/audit/audit.service';
 import { AuthUser } from '../auth/types/auth.types';
+import { getActorId } from 'src/common/audit/audit.utils';
 
 @Injectable()
 export class UserService {
@@ -81,7 +82,7 @@ export class UserService {
     if (!existingUser) {
       this.auditService.log({
         action: 'user.roles.update',
-        actorId: actor?.sub ?? null,
+        actorId: getActorId(actor),
         actorRoles: actor?.roles ?? [],
         actorScopes: actor?.scopes ?? [],
         targetType: 'user',
@@ -99,7 +100,7 @@ export class UserService {
 
     this.auditService.log({
       action: 'user.roles.update',
-      actorId: actor?.sub ?? null,
+      actorId: getActorId(actor),
       actorRoles: actor?.roles ?? [],
       actorScopes: actor?.scopes ?? [],
       targetType: 'user',
