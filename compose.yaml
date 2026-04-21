@@ -177,6 +177,24 @@ services:
     networks:
       - db-network
 
+  seed-load:
+    build:
+      context: .
+      dockerfile: services/orders-service/Dockerfile
+      target: tools
+    command: pnpm run db:seed:load
+    env_file:
+      - .env
+    profiles:
+      - tools
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - db-network
+
 networks:
   db-network:
     driver: bridge

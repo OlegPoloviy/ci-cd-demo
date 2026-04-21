@@ -20,6 +20,7 @@ import {
   MoreThanOrEqual,
   LessThanOrEqual,
   EntityManager,
+  In,
 } from 'typeorm';
 import { OrderItemEntity } from './order-item.entity';
 import { Product } from '../products/products.entity';
@@ -383,35 +384,36 @@ export class OrdersService implements OnModuleInit {
   }
 
   async getOrders(pagination?, filters?): Promise<OrdersEntity[]> {
-    const where: FindOptionsWhere<OrdersEntity> = {};
-
     const page = pagination?.page || 1;
     const limit = pagination?.limit || 10;
 
+    const skip = (Math.max(1, page) - 1) * limit;
+
+    // Performance: avoid eager-loading `items` relation for the orders list.
+    // Items are resolved via GraphQL field resolvers (DataLoader in optimized mode),
+    // or can be prefetched in a single bulk query in "simple" mode.
+    const qb = this.ordersRepository.createQueryBuilder('o');
+
+    qb.select(['o.id', 'o.userId', 'o.status', 'o.createdAt', 'o.updatedAt']);
+
     if (filters?.status) {
-      where.status = filters.status;
+      qb.andWhere('o.status = :status', { status: filters.status });
     }
 
     if (filters?.dateFrom && filters?.dateTo) {
-      where.createdAt = Between(
-        new Date(filters.dateFrom),
-        new Date(filters.dateTo),
-      );
+      qb.andWhere('o.createdAt BETWEEN :from AND :to', {
+        from: new Date(filters.dateFrom),
+        to: new Date(filters.dateTo),
+      });
     } else if (filters?.dateFrom) {
-      where.createdAt = MoreThanOrEqual(new Date(filters.dateFrom));
+      qb.andWhere('o.createdAt >= :from', { from: new Date(filters.dateFrom) });
     } else if (filters?.dateTo) {
-      where.createdAt = LessThanOrEqual(new Date(filters.dateTo));
+      qb.andWhere('o.createdAt <= :to', { to: new Date(filters.dateTo) });
     }
 
-    const skip = (Math.max(1, page) - 1) * limit;
+    qb.orderBy('o.createdAt', 'DESC').skip(skip).take(limit);
 
-    const [orders, count] = await this.ordersRepository.findAndCount({
-      where,
-      order: { createdAt: 'DESC' },
-      relations: { items: true },
-      take: limit,
-      skip,
-    });
+    const [orders, count] = await qb.getManyAndCount();
 
     return {
       //@ts-ignore
@@ -426,6 +428,24 @@ export class OrdersService implements OnModuleInit {
     });
 
     return orderItems;
+  }
+
+  async getOrderItemsForOrderIds(
+    orderIds: string[],
+  ): Promise<Map<string, OrderItemEntity[]>> {
+    const map = new Map<string, OrderItemEntity[]>();
+    for (const id of orderIds) map.set(id, []);
+    if (orderIds.length === 0) return map;
+
+    const items = await this.orderItemsRepository.find({
+      where: { orderId: In(orderIds) },
+    });
+
+    for (const item of items) {
+      map.get(item.orderId)?.push(item);
+    }
+
+    return map;
   }
 
   async canSubscribeToOrder(orderId: string, user: AuthUser): Promise<void> {

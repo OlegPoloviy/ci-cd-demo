@@ -17,8 +17,7 @@ import { FilesController } from './modules/files/files.controller';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { OrderTrackingModule } from './modules/order-tracking/order-tracking.module';
 import { RabbitmqModule } from './modules/rabbitmq/rabbitmq.module';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AuditModule } from './common/audit/audit.module';
 
 @Module({
@@ -54,13 +53,7 @@ import { AuditModule } from './common/audit/audit.module';
     }),
   ],
   controllers: [AppController, HealthController],
-  providers: [
-    AppService,
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
-  ],
+  providers: [AppService],
 })
 export class AppModule {
   // configure(consumer: MiddlewareConsumer) {
