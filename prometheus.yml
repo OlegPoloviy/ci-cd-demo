@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'orders-api'
+    static_configs:
+      - targets: ['orders-api:9464']

@@ -52,6 +52,39 @@ services:
       timeout: 5s
       retries: 5
 
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - api-network
+    depends_on:
+      - orders-api
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - '3003:3000'
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - api-network
+    depends_on:
+      - prometheus
+    environment:
+      GF_LOG_LEVEL: error
+      GF_LOG_MODE: console
+      GF_LOG_FILTERS: 'sqlstore:warn plugins:warn plugin.*:warn ngalert:warn'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+      GF_PLUGINS_PREINSTALL_DISABLED: 'true'
+
   payments-db:
     image: postgres:15-alpine
     environment:
@@ -136,6 +169,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
       minio:
         condition: service_healthy
       payments-api:
@@ -187,3 +222,5 @@ volumes:
   payments_pgdata:
   minio_data:
   rabbit_data:
+  prometheus_data:
+  grafana_data:
