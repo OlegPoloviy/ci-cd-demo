@@ -41,14 +41,8 @@ import { AuditModule } from './common/audit/audit.module';
     ThrottlerModule.forRoot({
       throttlers: [
         {
-          name: 'basic',
-          ttl: 60000,
+          ttl: 60_000,
           limit: 100,
-        },
-        {
-          name: 'strict',
-          ttl: 60000,
-          limit: 5,
         },
       ],
     }),
