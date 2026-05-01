@@ -2,6 +2,7 @@ import { UserEntity } from '../../../modules/user/user.entity';
 import { Product } from '../../../modules/products/products.entity';
 import { OrderItemEntity } from '../../../modules/orders/order-item.entity';
 import DataLoader from 'dataloader';
+import { Request, Response } from 'express';
 
 export type Loaders = {
   userLoader: DataLoader<string, UserEntity>;
@@ -12,4 +13,6 @@ export type Loaders = {
 export type GraphQLContext = {
   loaders: Loaders;
   strategy: 'optimized' | 'simple';
+  req?: Request;
+  res?: Response;
 };

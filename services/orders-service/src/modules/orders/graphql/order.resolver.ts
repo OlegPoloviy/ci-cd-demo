@@ -34,13 +34,28 @@ export class OrderResolver {
   }
 
   @Query(() => OrdersResponse)
-  getOrdersSimple(
+  async getOrdersSimple(
     @Args('ordersFilter', { nullable: true }) filters: OrderFilterInput,
     @Args('pagination', { nullable: true }) pagination: OrderPaginationInput,
     @Context() ctx: GraphQLContext,
   ) {
     ctx.strategy = 'simple';
-    return this.ordersService.getOrders(pagination, filters);
+    const response = (await this.ordersService.getOrders(
+      pagination,
+      filters,
+    )) as unknown as OrdersResponse;
+
+    // "Simple" mode improvement: prefetch all order items in a single query for
+    // the current page, to avoid N+1 (without relying on DataLoader).
+    const orderIds = response.items.map((o) => o.id);
+    const itemsByOrderId =
+      await this.ordersService.getOrderItemsForOrderIds(orderIds);
+
+    for (const order of response.items as any[]) {
+      order.items = itemsByOrderId.get(order.id) ?? [];
+    }
+
+    return response;
   }
 
   @Query(() => OrderModel)
@@ -60,6 +75,10 @@ export class OrderResolver {
 
   @ResolveField(() => [OrderItemModel])
   async items(@Parent() order: OrderModel, @Context() ctx: GraphQLContext) {
+    // If items were prefetched (e.g. in getOrdersSimple), use them as-is.
+    // @ts-ignore
+    if (Array.isArray(order.items)) return order.items;
+
     if (ctx.strategy === 'optimized') {
       return ctx.loaders.orderItemsLoader.load(order.id);
     }

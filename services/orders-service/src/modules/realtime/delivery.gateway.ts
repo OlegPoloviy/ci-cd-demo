@@ -15,6 +15,7 @@ import {
   UnauthorizedException,
   Logger,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { Observable, from, map, interval, Subscription } from 'rxjs';
@@ -25,6 +26,11 @@ import { getTokenFromHandshake } from 'src/common/utils/getTokenFromHandshake';
 import { OrdersService } from '../orders/orders.service';
 import { OrderTrackingService } from '../order-tracking/order-tracking.service';
 import { WsUser } from 'src/common/decorators/ws-user.decorator';
+import {
+  WsStrictThrottle,
+  WsThrottle,
+  WsThrottleGuard,
+} from 'src/common/guards/ws-throttle.guard';
 
 type RealtimeClientData = {
   user?: JwtPayload;
@@ -38,6 +44,7 @@ type CourierLocationUpdateBody = {
 };
 
 @WebSocketGateway({ namespace: 'delivery', cors: { origin: true } })
+@UseGuards(WsThrottleGuard)
 export class DeliveryGateway
   implements OnModuleDestroy, OnGatewayDisconnect, OnGatewayConnection
 {
@@ -84,6 +91,7 @@ export class DeliveryGateway
   }
 
   @SubscribeMessage('courier_location_update')
+  @WsThrottle(20, 10_000)
   async updateCourierLocation(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: CourierLocationUpdateBody | string,
@@ -154,6 +162,7 @@ export class DeliveryGateway
   }
 
   @SubscribeMessage('subscribeOrder')
+  @WsStrictThrottle()
   async handleOrderSubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { orderId?: string } | string,
@@ -191,6 +200,7 @@ export class DeliveryGateway
   }
 
   @SubscribeMessage('unsubscribeOrder')
+  @WsThrottle(10, 10_000)
   async handleOrderUnsubscribe(
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { orderId?: string } | string,
