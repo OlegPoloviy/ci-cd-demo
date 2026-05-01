@@ -1,4 +1,4 @@
-import '../instrumentation';
+import './instrumentation';
 import { NestFactory } from '@nestjs/core';
 import { RequestMethod, ValidationPipe, VersioningType } from '@nestjs/common';
 import { AppModule } from './app.module';
