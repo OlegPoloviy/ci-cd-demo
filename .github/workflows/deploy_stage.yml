@@ -1,0 +1,74 @@
+name: Deploy stage
+
+on:
+  workflow_run:
+    workflows: ['Build and push image to the registry']
+    types: [completed]
+
+jobs:
+  deploy_stage:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: self-hosted
+    environment:
+      name: stage
+      url: http://localhost:8080
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download release manifest artifact
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: build-and-stage.yml
+          run_id: ${{ github.event.workflow_run.id }}
+          name: release-manifest
+          path: .
+
+      - name: Check downloaded manifest
+        run: |
+          ls -la
+          cat release-manifest.json
+
+      - name: Read manifest
+        run: |
+          echo 'ORDERS_IMAGE<<EOF' >> $GITHUB_ENV
+          jq -r '.services["orders-api"].image' release-manifest.json >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+          echo 'PAYMENTS_IMAGE<<EOF' >> $GITHUB_ENV
+          jq -r '.services["payments"].image' release-manifest.json >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+      - name: Check stage files
+        run: |
+          ls -la
+          ls -la deploy
+          test -f deploy/.env.stage
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Deploy stage stack
+        run: |
+          export ORDERS_IMAGE="${ORDERS_IMAGE}"
+          export PAYMENTS_IMAGE="${PAYMENTS_IMAGE}"
+
+          docker compose \
+            --env-file deploy/.env.stage \
+            -f deploy/compose.stage.yml \
+            -p myapp-stage \
+            pull
+
+          docker compose \
+            --env-file deploy/.env.stage \
+            -f deploy/compose.stage.yml \
+            -p myapp-stage \
+            up -d
+
+      - name: Show running containers
+        run: docker ps
+
+      - name: Post-deploy health check
+        run: |
+          curl --fail --retry 10 --retry-delay 5 http://localhost:8080/health
