@@ -1,0 +1,7 @@
+{
+  "timestamp": "2026-04-18T19:35:34.622Z",
+  "path": "/api/auth/login",
+  "error": {
+    "message": "ThrottlerException: Too Many Requests"
+  }
+}

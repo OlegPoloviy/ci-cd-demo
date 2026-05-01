@@ -6,11 +6,13 @@ import * as bcrypt from 'bcrypt';
 import { UserEntity } from '../user/user.entity';
 import { JwtPayload } from './types/auth.types';
 import { LoginDto } from './types/login.dto';
+import { AuditService } from 'src/common/audit/audit.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
+    private readonly auditService: AuditService,
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
   ) {}
@@ -23,6 +25,19 @@ export class AuthService {
       .getOne();
 
     if (!existingUser || !existingUser.passwordHash) {
+      this.auditService.log({
+        action: 'auth.login',
+        actorId: null,
+        actorRoles: [],
+        actorScopes: [],
+        targetType: 'user',
+        targetId: existingUser?.id ?? email,
+        outcome: 'failure',
+        reason: 'invalid_credentials',
+        metadata: {
+          email,
+        },
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -32,6 +47,19 @@ export class AuthService {
     );
 
     if (!isValidPassword) {
+      this.auditService.log({
+        action: 'auth.login',
+        actorId: null,
+        actorRoles: [],
+        actorScopes: [],
+        targetType: 'user',
+        targetId: existingUser.id,
+        outcome: 'failure',
+        reason: 'invalid_credentials',
+        metadata: {
+          email,
+        },
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -51,6 +79,16 @@ export class AuthService {
     };
 
     const accessToken = await this.jwtService.signAsync(payload);
+
+    this.auditService.log({
+      action: 'auth.login',
+      actorId: user.id,
+      actorRoles: user.roles ?? [],
+      actorScopes: user.scopes ?? [],
+      targetType: 'user',
+      targetId: user.id,
+      outcome: 'success',
+    });
 
     return { accessToken };
   }

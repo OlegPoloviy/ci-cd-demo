@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # CI/CD homework
 
 In this homework I've implemented new repository with the following structure of branches
@@ -94,3 +95,6 @@ Approval screen
 Production deploy
 <img width="1228" height="1036" alt="image" src="https://github.com/user-attachments/assets/51ded47c-2972-45bb-980c-ce45eeef6cd8" />
 
+=======
+Please check the ```SECURITY-BASELINE.md``` file
+>>>>>>> feature/security-hardering

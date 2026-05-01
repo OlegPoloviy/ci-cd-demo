@@ -12,4 +12,6 @@ export type JwtPayload = {
   scopes: string[];
 };
 
-export type AuthUser = JwtPayload;
+export type AuthUser = JwtPayload & {
+  id?: string;
+};
