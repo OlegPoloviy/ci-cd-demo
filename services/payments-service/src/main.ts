@@ -1,3 +1,4 @@
+import './instrumentation';
 import { NestFactory } from '@nestjs/core';
 import { PaymentsServiceModule } from './payments-service.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';

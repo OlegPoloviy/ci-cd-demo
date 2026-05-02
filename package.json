@@ -11,7 +11,10 @@
     "start:payments:prod": "pnpm -C services/payments-service run start:prod",
     "build:payments": "pnpm -C services/payments-service run build",
     "build": "pnpm run build:orders && pnpm run build:payments",
-    "install:all": "pnpm install"
+    "install:all": "pnpm install",
+    "db:bulk-products": "pnpm -C services/orders-service run db:bulk-products --",
+    "stress:orders": "node scripts/stress-orders.mjs",
+    "poll:payment-status": "node scripts/poll-payment-status.mjs"
   },
   "engines": {
     "node": ">=18"

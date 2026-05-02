@@ -15,6 +15,17 @@ services:
       timeout: 5s
       retries: 5
 
+  db-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    environment:
+      DATA_SOURCE_NAME: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=disable
+    networks:
+      - db-network
+      - api-network
+    depends_on:
+      db:
+        condition: service_healthy
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
@@ -33,6 +44,20 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  rabbitmq-exporter:
+    image: kbudde/rabbitmq-exporter:latest
+    environment:
+      RABBIT_URL: http://rabbitmq:15672
+      RABBIT_USER: ${RABBIT_USER:-guest}
+      RABBIT_PASSWORD: ${RABBIT_PASSWORD:-guest}
+      PUBLISH_PORT: '9419'
+      OUTPUT_FORMAT: TTY
+    networks:
+      - api-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   minio:
     image: minio/minio
@@ -64,6 +89,7 @@ services:
       - '--storage.tsdb.path=/prometheus'
     networks:
       - api-network
+      - db-network
     depends_on:
       - orders-api
 
@@ -105,6 +131,17 @@ services:
       timeout: 5s
       retries: 5
 
+  payments-db-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    environment:
+      DATA_SOURCE_NAME: postgresql://${PAYMENTS_DB_USER:-postgres}:${PAYMENTS_DB_PASSWORD:-postgres}@payments-db:5432/${PAYMENTS_DB_NAME:-payments}?sslmode=disable
+    networks:
+      - db-network
+      - api-network
+    depends_on:
+      payments-db:
+        condition: service_healthy
+
   payments-migrate:
     build:
       context: .
@@ -143,6 +180,8 @@ services:
       PAYMENTS_DB_HOST: payments-db
       PAYMENTS_DB_PORT: '5432'
       PAYMENTS_GRPC_BIND_URL: 0.0.0.0:${PAYMENTS_GRPC_PORT:-50051}
+      PAYMENTS_OTEL_PROMETHEUS_PORT: '9464'
+      PAYMENTS_OTEL_SERVICE_NAME: payments-api
     ports:
       - '${PAYMENTS_GRPC_PORT:-50051}:${PAYMENTS_GRPC_PORT:-50051}'
     networks:
@@ -209,6 +248,25 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+    networks:
+      - db-network
+
+  bulk-seed-products:
+    build:
+      context: .
+      dockerfile: services/orders-service/Dockerfile
+      target: tools
+    command: ['pnpm', 'run', 'db:bulk-products', '--', '200']
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: '5432'
+    profiles:
+      - tools
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - db-network
 

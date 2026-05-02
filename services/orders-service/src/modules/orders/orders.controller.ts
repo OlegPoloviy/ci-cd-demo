@@ -9,11 +9,13 @@ import {
   HttpStatus,
   ParseUUIDPipe,
   NotFoundException,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './create-order.dto';
 import { AssignCourierDto } from './dto/assign-courier.dto';
+import { ListOrdersQueryDto } from './dto/list-orders-query.dto';
 import { OrdersEntity } from './orders.entity';
 import { OrderTrackingService } from '../order-tracking/order-tracking.service';
 import { OrderTrackingEntity } from '../order-tracking/order-tracking.entity';
@@ -34,8 +36,10 @@ export class OrdersController {
     type: [OrdersEntity],
   })
   @ApiResponse({ status: 404, description: 'Orders not found' })
-  getAll() {
-    return this.ordersService.getOrders();
+  getAll(@Query() query: ListOrdersQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    return this.ordersService.getOrders({ page, limit }, undefined);
   }
 
   @Post()
