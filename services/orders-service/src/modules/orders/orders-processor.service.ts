@@ -4,6 +4,7 @@ import { OrdersService } from './orders.service';
 import { RabbitmqService } from '../rabbitmq/rabbitmq.service';
 import { OrdersProcessMessage } from './orders-queue.type';
 import { ConfigService } from '@nestjs/config';
+import { recordOrderProcessingRetry } from './orders.metrics';
 
 @Injectable()
 export class OrdersProcessorService implements OnApplicationBootstrap {
@@ -70,6 +71,11 @@ export class OrdersProcessorService implements OnApplicationBootstrap {
       );
 
       if (attempt < this.MAX_ATTEMPTS) {
+        recordOrderProcessingRetry(
+          'orders.process',
+          this.getErrorReason(error),
+        );
+
         this.logger.log(
           `Handle message result=retry: messageId=${messageId}, orderId=${payload.orderId}, attempt=${attempt}, nextAttempt=${attempt + 1}`,
         );
@@ -107,5 +113,18 @@ export class OrdersProcessorService implements OnApplicationBootstrap {
     } catch (e) {
       this.logger.error('Nack failed', e);
     }
+  }
+
+  private getErrorReason(error: unknown): string {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'name' in error &&
+      typeof error.name === 'string'
+    ) {
+      return error.name;
+    }
+
+    return 'unknown';
   }
 }
