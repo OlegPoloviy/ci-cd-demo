@@ -253,19 +253,19 @@ jobs:
           export PAYMENTS_IMAGE="${PAYMENTS_IMAGE}"
           export PAYMENTS_MIGRATE_IMAGE="${PAYMENTS_MIGRATE_IMAGE}"
 
-          docker-compose \
+          docker compose \
             -p myapp-stage \
             --env-file deploy/.env.stage \
             -f deploy/compose.stage.yml \
             pull
 
-          docker-compose \
+          docker compose \
             -p myapp-stage \
             --env-file deploy/.env.stage \
             -f deploy/compose.stage.yml \
             down --remove-orphans
 
-          docker-compose \
+          docker compose \
             -p myapp-stage \
             --env-file deploy/.env.stage \
             -f deploy/compose.stage.yml \

@@ -83,7 +83,7 @@
 
 - `[~]` Частково.
 - Що вже є:
-  - Є stage/prod docker-compose конфіги в `deploy/`.
+  - Є stage/prod Docker Compose конфіги в `deploy/`.
   - Є GitHub Actions для `build-and-stage.yml` і `deploy-production.yml`.
   - Є health-check після деплою.
 - Чого не вистачає:
@@ -111,7 +111,7 @@
   - Найпростіший варіант: Prometheus metrics endpoint + Prometheus/Grafana або хоча б Sentry.
   - Мінімум для домашки:
     - експортувати HTTP/queue/DB метрики
-    - додати сервіс моніторингу в docker-compose
+    - додати сервіс моніторингу в Docker Compose
     - описати, як перевірити метрики локально
 
 ## 10. Автоматизовані тести

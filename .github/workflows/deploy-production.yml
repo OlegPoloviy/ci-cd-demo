@@ -135,7 +135,7 @@ jobs:
           grep '^PAYMENTS_IMAGE=' deploy/.env.production
           grep '^PAYMENTS_MIGRATE_IMAGE=' deploy/.env.production
           echo "----- rendered compose -----"
-          docker-compose --env-file deploy/.env.production -f deploy/compose.prod.yml config
+          docker compose --env-file deploy/.env.production -f deploy/compose.prod.yml config
 
       - name: Login to GHCR
         run: |
@@ -143,7 +143,7 @@ jobs:
 
       - name: Pull production images
         run: |
-          docker-compose \
+          docker compose \
             -p myapp-prod \
             --env-file deploy/.env.production \
             -f deploy/compose.prod.yml \
@@ -151,13 +151,13 @@ jobs:
 
       - name: Recreate production stack
         run: |
-          docker-compose \
+          docker compose \
             -p myapp-prod \
             --env-file deploy/.env.production \
             -f deploy/compose.prod.yml \
             down --remove-orphans
 
-          docker-compose \
+          docker compose \
             -p myapp-prod \
             --env-file deploy/.env.production \
             -f deploy/compose.prod.yml \
