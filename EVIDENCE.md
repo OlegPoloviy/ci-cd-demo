@@ -24,15 +24,9 @@ Expected response:
 
 Screenshot:
 
-```text
-TODO: insert screenshot of /health response
-```
+<img width="979" height="45" alt="image" src="https://github.com/user-attachments/assets/9ced40d1-c0b2-452e-affd-65e3f89f0c42" />
 
-Loom/video:
 
-```text
-TODO: insert Loom link showing deployed /health
-```
 
 ## 2. API Description
 
@@ -59,17 +53,6 @@ Order lifecycle:
 PENDING -> PROCESSED
 ```
 
-Swagger/OpenAPI:
-
-```text
-TODO: insert Swagger URL if enabled for stage/local, e.g. http://localhost:8080/docs
-```
-
-Swagger screenshot:
-
-```text
-TODO: insert screenshot of Swagger or API docs
-```
 
 ## 3. Main Flow E2E Proof
 
@@ -89,15 +72,8 @@ node scripts/e2e-main-flow.mjs
 
 Observed result:
 
-```json
-{
-  "ok": true,
-  "userId": "fc1a5f4a-044b-41f8-8611-53b58c2d4376",
-  "orderId": "7fdad840-4220-40fa-9ebd-ec44d6264593",
-  "finalStatus": "PROCESSED",
-  "paymentStatus": "1"
-}
-```
+<img width="765" height="273" alt="image" src="https://github.com/user-attachments/assets/62bca97a-514a-4562-8bb5-958b1d11bf43" />
+
 
 Manual curl proof from deployed environment:
 
