@@ -6,6 +6,7 @@ import { AllExceptionFilter } from './common/filters/all-exception.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { RequestContextMiddleware } from './common/middlewares/request-context.middleware';
 import { RequestIdMiddleware } from './common/middlewares/request-id.middleware';
+import { HttpRequestLoggerMiddleware } from './common/middlewares/http-request-logger.middleware';
 import helmet from 'helmet';
 
 async function bootstrap() {
@@ -47,29 +48,37 @@ async function bootstrap() {
   );
 
   app.use(new RequestIdMiddleware().use);
+  const httpRequestLogger = new HttpRequestLoggerMiddleware();
+  app.use(httpRequestLogger.use.bind(httpRequestLogger));
   app.use(new RequestContextMiddleware().use);
 
   app.use(helmet());
 
   app.useGlobalFilters(new AllExceptionFilter());
-  const config = new DocumentBuilder()
-    .setTitle('RabbitMQ')
-    .setDescription('RabbitMQ learning project')
-    .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
-      },
-      'access-token',
-    )
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+
+  const swaggerEnabled = process.env.SWAGGER_ENABLED === 'true';
+
+  if (swaggerEnabled) {
+    const config = new DocumentBuilder()
+      .setTitle('RabbitMQ')
+      .setDescription('RabbitMQ learning project')
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          name: 'JWT',
+          description: 'Enter JWT token',
+          in: 'header',
+        },
+        'access-token',
+      )
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document);
+  }
+
   await app.listen(process.env.PORT ?? 3000);
 }
 

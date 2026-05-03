@@ -10,8 +10,16 @@ import {
   ParseUUIDPipe,
   NotFoundException,
   Query,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './create-order.dto';
 import { AssignCourierDto } from './dto/assign-courier.dto';
@@ -19,8 +27,13 @@ import { ListOrdersQueryDto } from './dto/list-orders-query.dto';
 import { OrdersEntity } from './orders.entity';
 import { OrderTrackingService } from '../order-tracking/order-tracking.service';
 import { OrderTrackingEntity } from '../order-tracking/order-tracking.entity';
+import { JwtAuthGuard } from '../../common/guards/auth.guard';
+import { UserRoleGuard } from '../../common/guards/user-role.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { AuthUser, UserRole } from '../auth/types/auth.types';
 
 @ApiTags('orders')
+@ApiBearerAuth('access-token')
 @Controller('orders')
 export class OrdersController {
   constructor(
@@ -29,6 +42,8 @@ export class OrdersController {
   ) {}
 
   @Get()
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   @ApiOperation({ summary: 'Get all orders' })
   @ApiResponse({
     status: 200,
@@ -43,6 +58,7 @@ export class OrdersController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new order' })
   @ApiBody({ type: CreateOrderDto })
@@ -58,23 +74,36 @@ export class OrdersController {
     description:
       'Conflict (e.g. insufficient stock or duplicate idempotency key)',
   })
-  create(@Body() dto: CreateOrderDto): Promise<OrdersEntity> {
+  async create(
+    @Body() dto: CreateOrderDto,
+    @Request() req: { user: AuthUser },
+  ): Promise<OrdersEntity> {
+    this.ordersService.assertCanCreateOrderForUser(dto.userId, req.user);
     return this.ordersService.createOrder(dto);
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get order by id' })
   @ApiResponse({ status: 200, description: 'Order found', type: OrdersEntity })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  getById(@Param('id', new ParseUUIDPipe()) id: string): Promise<OrdersEntity> {
-    return this.ordersService.getOrderById(id);
+  async getById(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Request() req: { user: AuthUser },
+  ): Promise<OrdersEntity> {
+    const order = await this.ordersService.getOrderById(id);
+    this.ordersService.assertCanAccessOrder(order, req.user);
+    return order;
   }
 
   @Get(':id/payment-status')
+  @UseGuards(JwtAuthGuard)
   async getOrderPaymentStatus(
     @Param('id', new ParseUUIDPipe()) orderId: string,
+    @Request() req: { user: AuthUser },
   ) {
     const order = await this.ordersService.getOrderById(orderId);
+    this.ordersService.assertCanAccessOrder(order, req.user);
     if (!order.paymentId) {
       throw new NotFoundException(
         'Order has no payment linked. Create the order first so that payment is authorized.',
@@ -84,6 +113,8 @@ export class OrdersController {
   }
 
   @Patch(':id/courier')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @UseGuards(JwtAuthGuard, UserRoleGuard)
   @ApiOperation({ summary: 'Assign courier to order' })
   @ApiBody({ type: AssignCourierDto })
   @ApiResponse({

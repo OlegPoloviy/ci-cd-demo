@@ -439,12 +439,22 @@ export class OrdersService implements OnModuleInit {
     this.assertCanAccessOrder(order, user);
   }
 
-  private assertCanAccessOrder(order: OrdersEntity, user: AuthUser): void {
+  assertCanCreateOrderForUser(userId: string, user: AuthUser): void {
     if (this.isStaff(user.roles)) {
       return;
     }
 
-    if (order.userId !== user.sub) {
+    if (userId !== this.getActorId(user)) {
+      throw new ForbiddenException('Access denied');
+    }
+  }
+
+  assertCanAccessOrder(order: OrdersEntity, user: AuthUser): void {
+    if (this.isStaff(user.roles)) {
+      return;
+    }
+
+    if (order.userId !== this.getActorId(user)) {
       throw new ForbiddenException('Access denied');
     }
   }
@@ -452,9 +462,14 @@ export class OrdersService implements OnModuleInit {
   private isStaff(roles: string[]): boolean {
     return (
       roles.includes('admin') ||
+      roles.includes('manager') ||
       roles.includes('operator') ||
       roles.includes('support')
     );
+  }
+
+  private getActorId(user: AuthUser): string | undefined {
+    return user.id ?? user.sub;
   }
 
   async setOrderCourierId(

@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { ForbiddenException } from '@nestjs/common';
 import { ClientGrpc } from '@nestjs/microservices';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { OrdersService } from './orders.service';
@@ -9,6 +10,7 @@ import { ProcessedMessagesEntity } from './processed-message.entity';
 import { OrderStatus } from '../../constants';
 import { RabbitmqService } from '../rabbitmq/rabbitmq.service';
 import { UserEntity } from '../user/user.entity';
+import { AuthUser } from '../auth/types/auth.types';
 
 type ProcessedRepoMock = {
   insert: jest.Mock<Promise<void>, [Partial<ProcessedMessagesEntity>]>;
@@ -41,6 +43,18 @@ describe('OrdersService', () => {
       { getService: jest.fn() } as unknown as ClientGrpc,
       { get: jest.fn() } as unknown as ConfigService,
     );
+
+  const authUser = (
+    id: string,
+    roles: string[],
+    email = `${id}@example.com`,
+  ): AuthUser => ({
+    id,
+    sub: id,
+    email,
+    roles,
+    scopes: [],
+  });
 
   it('processes queued order by reserving stock and marking it as processed', async () => {
     const product = {
@@ -121,5 +135,57 @@ describe('OrdersService', () => {
     expect(productRepo.save).toHaveBeenCalledWith([product]);
     expect(orderItemRepo.save).toHaveBeenCalledWith(order.items);
     expect(orderRepo.save).toHaveBeenCalledWith(order);
+  });
+
+  it('allows users to create orders only for themselves unless they are staff', () => {
+    const service = makeService({} as DataSource);
+    const user = authUser(
+      '44444444-4444-4444-4444-444444444444',
+      ['user'],
+      'user@example.com',
+    );
+    const manager = authUser(
+      '55555555-5555-5555-5555-555555555555',
+      ['manager'],
+      'manager@example.com',
+    );
+
+    expect(() =>
+      service.assertCanCreateOrderForUser(user.id, user),
+    ).not.toThrow();
+    expect(() =>
+      service.assertCanCreateOrderForUser(user.id, manager),
+    ).not.toThrow();
+    expect(() =>
+      service.assertCanCreateOrderForUser(
+        '66666666-6666-6666-6666-666666666666',
+        user,
+      ),
+    ).toThrow(ForbiddenException);
+  });
+
+  it('allows reading an order only to its owner or staff', () => {
+    const service = makeService({} as DataSource);
+    const order = {
+      id: '22222222-2222-2222-2222-222222222222',
+      userId: '44444444-4444-4444-4444-444444444444',
+    } as OrdersEntity;
+    const owner = authUser(order.userId, ['user'], 'owner@example.com');
+    const otherUser = authUser(
+      '77777777-7777-7777-7777-777777777777',
+      ['user'],
+      'other@example.com',
+    );
+    const admin = authUser(
+      '88888888-8888-8888-8888-888888888888',
+      ['admin'],
+      'admin@example.com',
+    );
+
+    expect(() => service.assertCanAccessOrder(order, owner)).not.toThrow();
+    expect(() => service.assertCanAccessOrder(order, admin)).not.toThrow();
+    expect(() => service.assertCanAccessOrder(order, otherUser)).toThrow(
+      ForbiddenException,
+    );
   });
 });

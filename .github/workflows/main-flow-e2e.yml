@@ -1,0 +1,74 @@
+name: Main flow real e2e
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  main-flow-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Prepare e2e environment
+        run: |
+          cp .env.e2e.example .env.e2e
+          cp .env.e2e .env
+
+      - name: Start stateful dependencies
+        run: |
+          docker compose \
+            -p security-homework-e2e \
+            --env-file .env.e2e \
+            up -d --build db rabbitmq minio payments-db
+
+      - name: Run orders migrations
+        run: |
+          docker compose \
+            -p security-homework-e2e \
+            --env-file .env.e2e \
+            --profile tools \
+            run --rm migrate
+
+      - name: Seed orders data
+        run: |
+          docker compose \
+            -p security-homework-e2e \
+            --env-file .env.e2e \
+            --profile tools \
+            run --rm seed
+
+      - name: Start application services
+        run: |
+          docker compose \
+            -p security-homework-e2e \
+            --env-file .env.e2e \
+            up -d --build payments-api orders-api
+
+      - name: Run main flow e2e
+        env:
+          BASE_URL: http://localhost:18080
+        run: node scripts/e2e-main-flow.mjs
+
+      - name: Show compose logs on failure
+        if: failure()
+        run: |
+          docker compose \
+            -p security-homework-e2e \
+            --env-file .env.e2e \
+            logs --tail=200
+
+      - name: Stop e2e stack
+        if: always()
+        run: |
+          docker compose \
+            -p security-homework-e2e \
+            --env-file .env.e2e \
+            down -v --remove-orphans

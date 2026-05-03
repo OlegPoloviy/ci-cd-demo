@@ -9,10 +9,14 @@ import { recordOrderProcessingRetry } from './orders.metrics';
 @Injectable()
 export class OrdersProcessorService implements OnApplicationBootstrap {
   private readonly logger = new Logger(OrdersProcessorService.name);
-  private readonly MAX_ATTEMPTS =
-    this.configService.get<number>('RABBIT_RETRY_COUNT') ?? 3;
-  private readonly RETRY_DELAY =
-    this.configService.get<number>('RABBIT_RETRY_DELAY') ?? 1000;
+  private readonly queue =
+    this.configService.get<string>('RABBITMQ_QUEUE_ORDERS') ?? 'orders.process';
+  private readonly MAX_ATTEMPTS = Number(
+    this.configService.get<string | number>('RABBITMQ_RETRY_COUNT') ?? 3,
+  );
+  private readonly RETRY_DELAY = Number(
+    this.configService.get<string | number>('RABBITMQ_RETRY_DELAY') ?? 1000,
+  );
   constructor(
     private readonly ordersService: OrdersService,
     private readonly rabbitmqService: RabbitmqService,
@@ -21,11 +25,11 @@ export class OrdersProcessorService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     this.logger.log('OrdersProcessorService initialized');
-    await this.rabbitmqService.consume('orders.process', async (msg, ch) => {
+    await this.rabbitmqService.consume(this.queue, async (msg, ch) => {
       await this.handleMessage(msg, ch);
     });
 
-    this.logger.log('Orders worker subscribed: orders.process');
+    this.logger.log(`Orders worker subscribed: ${this.queue}`);
   }
 
   private async handleMessage(msg: ConsumeMessage, ch: Channel) {
@@ -72,7 +76,7 @@ export class OrdersProcessorService implements OnApplicationBootstrap {
 
       if (attempt < this.MAX_ATTEMPTS) {
         recordOrderProcessingRetry(
-          'orders.process',
+          this.queue,
           this.getErrorReason(error),
         );
 
@@ -82,7 +86,7 @@ export class OrdersProcessorService implements OnApplicationBootstrap {
 
         await new Promise((resolve) => setTimeout(resolve, this.RETRY_DELAY));
 
-        this.rabbitmqService.publish('orders.process', {
+        this.rabbitmqService.publish(this.queue, {
           ...payload,
           attempt: attempt + 1,
           messageId,

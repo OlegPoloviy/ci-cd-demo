@@ -18,8 +18,8 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
       - '5672:5672'
       - '15672:15672'
@@ -67,6 +67,31 @@ services:
       timeout: 5s
       retries: 10
 
+  payments-migrate:
+    image: ${PAYMENTS_MIGRATE_IMAGE}
+    working_dir: /repo
+    command:
+      [
+        'pnpm',
+        '--filter',
+        './services/payments-service',
+        'exec',
+        'typeorm-ts-node-commonjs',
+        '-d',
+        'data-source.ts',
+        'migration:run',
+      ]
+    env_file:
+      - .env.stage
+    environment:
+      PAYMENTS_DB_HOST: payments-db
+      PAYMENTS_DB_PORT: '5432'
+    networks:
+      - db-network
+    depends_on:
+      payments-db:
+        condition: service_healthy
+
   payments-api:
     image: ${PAYMENTS_IMAGE}
     env_file:
@@ -81,6 +106,38 @@ services:
     depends_on:
       payments-db:
         condition: service_healthy
+      payments-migrate:
+        condition: service_completed_successfully
+
+  orders-migrate:
+    image: ${ORDERS_TOOLS_IMAGE}
+    command: pnpm run db:migrate
+    env_file:
+      - .env.stage
+    environment:
+      DB_HOST: db
+      DB_PORT: '5432'
+    networks:
+      - db-network
+    depends_on:
+      db:
+        condition: service_healthy
+
+  orders-seed:
+    image: ${ORDERS_TOOLS_IMAGE}
+    command: pnpm run db:seed
+    env_file:
+      - .env.stage
+    environment:
+      DB_HOST: db
+      DB_PORT: '5432'
+    networks:
+      - db-network
+    depends_on:
+      db:
+        condition: service_healthy
+      orders-migrate:
+        condition: service_completed_successfully
 
   orders-api:
     image: ${ORDERS_IMAGE}
@@ -90,7 +147,7 @@ services:
       DB_HOST: db
       DB_PORT: '5432'
       PAYMENTS_GRPC_URL: payments-api:${PAYMENTS_GRPC_PORT:-50051}
-      RABBITMQ_URL: amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@rabbitmq:5672
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
       PORT: '3000'
     ports:
       - '${PORT:-8080}:3000'
@@ -102,6 +159,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      orders-seed:
+        condition: service_completed_successfully
       payments-api:
         condition: service_started
       minio:

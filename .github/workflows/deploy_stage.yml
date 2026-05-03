@@ -40,6 +40,14 @@ jobs:
           jq -r '.services["payments"].image' release-manifest.json >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
 
+          echo 'ORDERS_TOOLS_IMAGE<<EOF' >> $GITHUB_ENV
+          jq -r '.services["orders-tools"].image' release-manifest.json >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+          echo 'PAYMENTS_MIGRATE_IMAGE<<EOF' >> $GITHUB_ENV
+          jq -r '.services["payments-migrate"].image' release-manifest.json >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
       - name: Check stage files
         run: |
           ls -la
@@ -52,7 +60,9 @@ jobs:
       - name: Deploy stage stack
         run: |
           export ORDERS_IMAGE="${ORDERS_IMAGE}"
+          export ORDERS_TOOLS_IMAGE="${ORDERS_TOOLS_IMAGE}"
           export PAYMENTS_IMAGE="${PAYMENTS_IMAGE}"
+          export PAYMENTS_MIGRATE_IMAGE="${PAYMENTS_MIGRATE_IMAGE}"
 
           docker compose \
             --env-file deploy/.env.stage \

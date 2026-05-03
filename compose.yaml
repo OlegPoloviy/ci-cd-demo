@@ -33,8 +33,8 @@ services:
       - '5672:5672'
       - '15672:15672'
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBIT_USER:-guest}
-      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD:-guest}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
     networks:
       - api-network
     volumes:
@@ -49,8 +49,8 @@ services:
     image: kbudde/rabbitmq-exporter:latest
     environment:
       RABBIT_URL: http://rabbitmq:15672
-      RABBIT_USER: ${RABBIT_USER:-guest}
-      RABBIT_PASSWORD: ${RABBIT_PASSWORD:-guest}
+      RABBIT_USER: ${RABBITMQ_USER:-guest}
+      RABBIT_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
       PUBLISH_PORT: '9419'
       OUTPUT_FORMAT: TTY
     networks:
@@ -203,6 +203,7 @@ services:
     env_file:
       - .env
     environment:
+      PORT: '3000'
       PAYMENTS_GRPC_URL: payments-api:${PAYMENTS_GRPC_PORT:-50051}
     networks:
       - db-network
