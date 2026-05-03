@@ -9,13 +9,17 @@ import { recordOrderProcessingRetry } from './orders.metrics';
 @Injectable()
 export class OrdersProcessorService implements OnApplicationBootstrap {
   private readonly logger = new Logger(OrdersProcessorService.name);
-  private readonly queue =
-    this.configService.get<string>('RABBITMQ_QUEUE_ORDERS') ?? 'orders.process';
-  private readonly MAX_ATTEMPTS = Number(
-    this.configService.get<string | number>('RABBITMQ_RETRY_COUNT') ?? 3,
+  private readonly queue = this.getNonEmptyConfig(
+    'RABBITMQ_QUEUE_ORDERS',
+    'orders.process',
   );
-  private readonly RETRY_DELAY = Number(
-    this.configService.get<string | number>('RABBITMQ_RETRY_DELAY') ?? 1000,
+  private readonly MAX_ATTEMPTS = this.getPositiveNumberConfig(
+    'RABBITMQ_RETRY_COUNT',
+    3,
+  );
+  private readonly RETRY_DELAY = this.getPositiveNumberConfig(
+    'RABBITMQ_RETRY_DELAY',
+    1000,
   );
   constructor(
     private readonly ordersService: OrdersService,
@@ -130,5 +134,15 @@ export class OrdersProcessorService implements OnApplicationBootstrap {
     }
 
     return 'unknown';
+  }
+
+  private getNonEmptyConfig(key: string, fallback: string): string {
+    const value = this.configService.get<string>(key);
+    return value?.trim() || fallback;
+  }
+
+  private getPositiveNumberConfig(key: string, fallback: number): number {
+    const value = Number(this.configService.get<string | number>(key));
+    return Number.isFinite(value) && value > 0 ? value : fallback;
   }
 }

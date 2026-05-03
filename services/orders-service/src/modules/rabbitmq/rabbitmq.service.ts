@@ -18,10 +18,14 @@ export class RabbitmqService implements OnModuleDestroy, OnModuleInit {
   private readonly logger = new Logger(RabbitmqService.name);
   private connection: Connection | null = null;
   private channel: Channel | null = null;
-  private readonly ordersQueue =
-    this.configService.get<string>('RABBITMQ_QUEUE_ORDERS') ?? 'orders.process';
-  private readonly dlqQueue =
-    this.configService.get<string>('RABBITMQ_QUEUE_DLQ') ?? 'orders.dlq';
+  private readonly ordersQueue = this.getNonEmptyConfig(
+    'RABBITMQ_QUEUE_ORDERS',
+    'orders.process',
+  );
+  private readonly dlqQueue = this.getNonEmptyConfig(
+    'RABBITMQ_QUEUE_DLQ',
+    'orders.dlq',
+  );
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -112,5 +116,10 @@ export class RabbitmqService implements OnModuleDestroy, OnModuleInit {
         }
       }
     });
+  }
+
+  private getNonEmptyConfig(key: string, fallback: string): string {
+    const value = this.configService.get<string>(key);
+    return value?.trim() || fallback;
   }
 }
