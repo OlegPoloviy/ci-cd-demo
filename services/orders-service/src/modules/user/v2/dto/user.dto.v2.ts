@@ -32,6 +32,7 @@ export class UserDtoV2 {
   @IsOptional()
   name?: string;
 
+  @IsOptional()
   @IsString()
   @MinLength(2)
   @ApiPropertyOptional({

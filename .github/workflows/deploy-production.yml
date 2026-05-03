@@ -29,6 +29,11 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Set up Node for post-deploy e2e
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Download release manifest from selected run
         uses: actions/download-artifact@v4
         with:
@@ -45,14 +50,20 @@ jobs:
           test -f release-manifest.json
 
           ORDERS_IMAGE=$(jq -r '.services["orders-api"].image' release-manifest.json)
+          ORDERS_TOOLS_IMAGE=$(jq -r '.services["orders-tools"].image' release-manifest.json)
           PAYMENTS_IMAGE=$(jq -r '.services["payments"].image' release-manifest.json)
+          PAYMENTS_MIGRATE_IMAGE=$(jq -r '.services["payments-migrate"].image' release-manifest.json)
           IMAGE_TAG=$(jq -r '.image_tag // empty' release-manifest.json)
           COMMIT_SHA=$(jq -r '.commit' release-manifest.json)
           ORDERS_DIGEST=$(jq -r '.services["orders-api"].digest' release-manifest.json)
+          ORDERS_TOOLS_DIGEST=$(jq -r '.services["orders-tools"].digest' release-manifest.json)
           PAYMENTS_DIGEST=$(jq -r '.services["payments"].digest' release-manifest.json)
+          PAYMENTS_MIGRATE_DIGEST=$(jq -r '.services["payments-migrate"].digest' release-manifest.json)
 
           test -n "$ORDERS_IMAGE"
+          test -n "$ORDERS_TOOLS_IMAGE"
           test -n "$PAYMENTS_IMAGE"
+          test -n "$PAYMENTS_MIGRATE_IMAGE"
 
           echo "=== PRODUCTION DEPLOY ==="
           echo "Target environment: production"
@@ -61,12 +72,18 @@ jobs:
           echo "Image tag: $IMAGE_TAG"
           echo "Orders image: $ORDERS_IMAGE"
           echo "Orders digest: $ORDERS_DIGEST"
+          echo "Orders tools image: $ORDERS_TOOLS_IMAGE"
+          echo "Orders tools digest: $ORDERS_TOOLS_DIGEST"
           echo "Payments image: $PAYMENTS_IMAGE"
           echo "Payments digest: $PAYMENTS_DIGEST"
+          echo "Payments migrate image: $PAYMENTS_MIGRATE_IMAGE"
+          echo "Payments migrate digest: $PAYMENTS_MIGRATE_DIGEST"
 
           cat > deploy/.env.production <<EOF
           ORDERS_IMAGE=$ORDERS_IMAGE
+          ORDERS_TOOLS_IMAGE=$ORDERS_TOOLS_IMAGE
           PAYMENTS_IMAGE=$PAYMENTS_IMAGE
+          PAYMENTS_MIGRATE_IMAGE=$PAYMENTS_MIGRATE_IMAGE
 
           NODE_ENV=production
 
@@ -74,8 +91,8 @@ jobs:
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           DB_NAME=${{ secrets.DB_NAME }}
 
-          RABBIT_USER=${{ secrets.RABBIT_USER }}
-          RABBIT_PASSWORD=${{ secrets.RABBIT_PASSWORD }}
+          RABBITMQ_USER=${{ secrets.RABBITMQ_USER }}
+          RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD }}
 
           MINIO_ROOT_USER=${{ secrets.MINIO_ROOT_USER }}
           MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}
@@ -85,9 +102,12 @@ jobs:
           PAYMENTS_DB_NAME=${{ secrets.PAYMENTS_DB_NAME }}
 
           JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_EXPIRES_IN=${{ vars.JWT_EXPIRES_IN }}
 
           PORT=${{ vars.PORT }}
           PAYMENTS_GRPC_PORT=${{ vars.PAYMENTS_GRPC_PORT }}
+          PAYMENTS_GRPC_TIMEOUT_MS=${{ vars.PAYMENTS_GRPC_TIMEOUT_MS }}
+          PAYMENTS_GRPC_BIND_URL=${{ vars.PAYMENTS_GRPC_BIND_URL }}
           MINIO_API_PORT=${{ vars.MINIO_API_PORT }}
           MINIO_CONSOLE_PORT=${{ vars.MINIO_CONSOLE_PORT }}
           AWS_REGION=${{ secrets.AWS_REGION }}
@@ -96,6 +116,11 @@ jobs:
           AWS_BUCKET=${{ secrets.AWS_BUCKET }}
           AWS_ENDPOINT=${{ secrets.AWS_ENDPOINT }}
           CLOUDFRONT_BASE_URL=${{ secrets.CLOUDFRONT_BASE_URL }}
+          RABBITMQ_PREFETCH=${{ vars.RABBITMQ_PREFETCH }}
+          RABBITMQ_QUEUE_ORDERS=${{ vars.RABBITMQ_QUEUE_ORDERS }}
+          RABBITMQ_QUEUE_DLQ=${{ vars.RABBITMQ_QUEUE_DLQ }}
+          RABBITMQ_RETRY_COUNT=${{ vars.RABBITMQ_RETRY_COUNT }}
+          RABBITMQ_RETRY_DELAY=${{ vars.RABBITMQ_RETRY_DELAY }}
           EOF
 
       - name: Preview env file safely
@@ -106,7 +131,9 @@ jobs:
         run: |
           echo "----- image refs from env file -----"
           grep '^ORDERS_IMAGE=' deploy/.env.production
+          grep '^ORDERS_TOOLS_IMAGE=' deploy/.env.production
           grep '^PAYMENTS_IMAGE=' deploy/.env.production
+          grep '^PAYMENTS_MIGRATE_IMAGE=' deploy/.env.production
           echo "----- rendered compose -----"
           docker-compose --env-file deploy/.env.production -f deploy/compose.prod.yml config
 
@@ -155,3 +182,8 @@ jobs:
           docker ps
           docker logs myapp-prod_orders-api_1 --tail 200 || true
           exit 1
+
+      - name: Production main flow e2e
+        env:
+          BASE_URL: http://localhost:8081
+        run: node scripts/e2e-main-flow.mjs

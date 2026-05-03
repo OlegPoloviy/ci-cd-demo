@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'orders-api'
+    static_configs:
+      - targets: ['orders-api:9464']
+  - job_name: 'payments-api'
+    static_configs:
+      - targets: ['payments-api:9464']
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq-exporter:9419']
+  - job_name: 'orders-db'
+    static_configs:
+      - targets: ['db-exporter:9187']
+  - job_name: 'payments-db'
+    static_configs:
+      - targets: ['payments-db-exporter:9187']

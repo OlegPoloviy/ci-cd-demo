@@ -7,6 +7,7 @@ import {
   ClassSerializerInterceptor,
   Patch,
   Param,
+  Request,
 } from '@nestjs/common';
 import { UserService } from '../user.service';
 import {
@@ -22,6 +23,7 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { UserRole } from '../../auth/types/auth.types';
 import { UserRoleGuard } from '../../../common/guards/user-role.guard';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { StrictThrottle } from 'src/common/decorators/throttle.decorators';
 
 @ApiTags('User v2')
 @Controller({ path: 'user', version: '2' })
@@ -50,7 +52,12 @@ export class UserControllerV2 {
     summary: 'Assign roles to user',
     description: 'Assign one or more roles to a user by their ID.',
   })
-  async assignRole(@Param('id') userId: string, @Body() dto: UpdateRoleDto) {
-    return this.userService.updateRoles(userId, dto.roles);
+  @StrictThrottle()
+  async assignRole(
+    @Request() req,
+    @Param('id') userId: string,
+    @Body() dto: UpdateRoleDto,
+  ) {
+    return this.userService.updateRoles(userId, dto.roles, req.user);
   }
 }

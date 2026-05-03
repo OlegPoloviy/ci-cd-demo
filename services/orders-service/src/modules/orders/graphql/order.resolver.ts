@@ -6,6 +6,7 @@ import {
   Parent,
   Context,
 } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
 import { OrderModel } from './order.model';
 import { OrdersResponse } from '../dto/order-response.dto';
 import { OrderFilterInput } from '../dto/order-filter.input';
@@ -15,7 +16,10 @@ import { UserModel } from '../../user/graphql/user.model';
 import { UserService } from '../../user/user.service';
 import { OrderItemModel } from './order-item.model';
 import { GraphQLContext } from 'src/common/graphql/loaders/loader.type';
+import { StrictThrottle } from 'src/common/decorators/throttle.decorators';
+import { GqlThrottlerGuard } from 'src/common/guards/gql-throttler.guard';
 
+@UseGuards(GqlThrottlerGuard)
 @Resolver(() => OrderModel)
 export class OrderResolver {
   constructor(
@@ -24,6 +28,7 @@ export class OrderResolver {
   ) {}
 
   @Query(() => OrdersResponse)
+  @StrictThrottle()
   getOrders(
     @Args('ordersFilter', { nullable: true }) filters: OrderFilterInput,
     @Args('pagination', { nullable: true }) pagination: OrderPaginationInput,
@@ -34,6 +39,7 @@ export class OrderResolver {
   }
 
   @Query(() => OrdersResponse)
+  @StrictThrottle()
   getOrdersSimple(
     @Args('ordersFilter', { nullable: true }) filters: OrderFilterInput,
     @Args('pagination', { nullable: true }) pagination: OrderPaginationInput,

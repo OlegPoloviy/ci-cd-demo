@@ -1,3 +1,4 @@
+import './instrumentation';
 import { NestFactory } from '@nestjs/core';
 import { PaymentsServiceModule } from './payments-service.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
@@ -11,8 +12,8 @@ async function bootstrap() {
   const config = appContext.get(ConfigService);
 
   const microserviceUrl =
-    config.get<string>('PAYMENTS_GRPC_BIND_URL') ||
-    `0.0.0.0:${config.get<number>('PAYMENTS_GRPC_PORT', 5022)}`;
+    config.getOrThrow<string>('PAYMENTS_GRPC_BIND_URL') ||
+    `0.0.0.0:${config.getOrThrow<number>('PAYMENTS_GRPC_PORT', 5022)}`;
 
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     PaymentsServiceModule,

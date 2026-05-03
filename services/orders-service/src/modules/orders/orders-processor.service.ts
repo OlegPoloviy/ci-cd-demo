@@ -4,14 +4,19 @@ import { OrdersService } from './orders.service';
 import { RabbitmqService } from '../rabbitmq/rabbitmq.service';
 import { OrdersProcessMessage } from './orders-queue.type';
 import { ConfigService } from '@nestjs/config';
+import { recordOrderProcessingRetry } from './orders.metrics';
 
 @Injectable()
 export class OrdersProcessorService implements OnApplicationBootstrap {
   private readonly logger = new Logger(OrdersProcessorService.name);
-  private readonly MAX_ATTEMPTS =
-    this.configService.get<number>('RABBIT_RETRY_COUNT') ?? 3;
-  private readonly RETRY_DELAY =
-    this.configService.get<number>('RABBIT_RETRY_DELAY') ?? 1000;
+  private readonly queue =
+    this.configService.get<string>('RABBITMQ_QUEUE_ORDERS') ?? 'orders.process';
+  private readonly MAX_ATTEMPTS = Number(
+    this.configService.get<string | number>('RABBITMQ_RETRY_COUNT') ?? 3,
+  );
+  private readonly RETRY_DELAY = Number(
+    this.configService.get<string | number>('RABBITMQ_RETRY_DELAY') ?? 1000,
+  );
   constructor(
     private readonly ordersService: OrdersService,
     private readonly rabbitmqService: RabbitmqService,
@@ -20,11 +25,11 @@ export class OrdersProcessorService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     this.logger.log('OrdersProcessorService initialized');
-    await this.rabbitmqService.consume('orders.process', async (msg, ch) => {
+    await this.rabbitmqService.consume(this.queue, async (msg, ch) => {
       await this.handleMessage(msg, ch);
     });
 
-    this.logger.log('Orders worker subscribed: orders.process');
+    this.logger.log(`Orders worker subscribed: ${this.queue}`);
   }
 
   private async handleMessage(msg: ConsumeMessage, ch: Channel) {
@@ -70,13 +75,18 @@ export class OrdersProcessorService implements OnApplicationBootstrap {
       );
 
       if (attempt < this.MAX_ATTEMPTS) {
+        recordOrderProcessingRetry(
+          this.queue,
+          this.getErrorReason(error),
+        );
+
         this.logger.log(
           `Handle message result=retry: messageId=${messageId}, orderId=${payload.orderId}, attempt=${attempt}, nextAttempt=${attempt + 1}`,
         );
 
         await new Promise((resolve) => setTimeout(resolve, this.RETRY_DELAY));
 
-        this.rabbitmqService.publish('orders.process', {
+        this.rabbitmqService.publish(this.queue, {
           ...payload,
           attempt: attempt + 1,
           messageId,
@@ -107,5 +117,18 @@ export class OrdersProcessorService implements OnApplicationBootstrap {
     } catch (e) {
       this.logger.error('Nack failed', e);
     }
+  }
+
+  private getErrorReason(error: unknown): string {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'name' in error &&
+      typeof error.name === 'string'
+    ) {
+      return error.name;
+    }
+
+    return 'unknown';
   }
 }

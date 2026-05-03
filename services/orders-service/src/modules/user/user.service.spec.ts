@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { UserService } from './user.service';
 import { UserEntity } from './user.entity';
 import { ProfileEntity } from './profile.entity';
+import { AuditService } from '../../common/audit/audit.service';
 
 describe('UserService', () => {
   let service: UserService;
@@ -28,6 +29,10 @@ describe('UserService', () => {
         {
           provide: getRepositoryToken(ProfileEntity),
           useValue: mockRepo(),
+        },
+        {
+          provide: AuditService,
+          useValue: { log: jest.fn() },
         },
       ],
     }).compile();

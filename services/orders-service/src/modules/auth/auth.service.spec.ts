@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { AuthService } from './auth.service';
 import { UserEntity } from '../user/user.entity';
+import { AuditService } from '../../common/audit/audit.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -17,6 +18,10 @@ describe('AuthService', () => {
             sign: jest.fn().mockReturnValue('token'),
             verify: jest.fn(),
           },
+        },
+        {
+          provide: AuditService,
+          useValue: { log: jest.fn() },
         },
         {
           provide: getRepositoryToken(UserEntity),

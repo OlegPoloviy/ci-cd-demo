@@ -57,10 +57,11 @@ export class AllExceptionFilter implements ExceptionFilter {
       const ctx = host.switchToHttp();
       const response = ctx.getResponse<Response>();
       const request = ctx.getRequest<Request>();
+      const sanitizedPath = this.sanitizeUrl(request.url);
 
       response.status(statusCode).json({
         timestamp: new Date().toISOString(),
-        path: request.url,
+        path: sanitizedPath,
         error: { message },
       });
     }
@@ -79,7 +80,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     if (contextType === 'http') {
       const req = host.switchToHttp().getRequest<Request>();
       method = req.method;
-      path = req.url;
+      path = this.sanitizeUrl(req.url);
     }
 
     if (statusCode >= 500) {
@@ -91,6 +92,67 @@ export class AllExceptionFilter implements ExceptionFilter {
       );
     } else {
       this.logger.warn(`${method} ${path} - ${statusCode}: ${message}`);
+    }
+  }
+
+  private sanitizeUrl(url: string): string {
+    return url
+      .split('/')
+      .map((segment) => this.sanitizeSegment(segment))
+      .join('/');
+  }
+
+  private sanitizeSegment(segment: string): string {
+    if (!segment) {
+      return segment;
+    }
+
+    const [pathPart, queryPart] = segment.split('?', 2);
+    const sanitizedPathPart = this.looksSensitive(pathPart)
+      ? '[REDACTED]'
+      : pathPart;
+
+    if (!queryPart) {
+      return sanitizedPathPart;
+    }
+
+    const sanitizedQuery = queryPart
+      .split('&')
+      .map((pair) => {
+        const [key, value] = pair.split('=', 2);
+        if (!value) {
+          return key;
+        }
+
+        return this.looksSensitive(value) || this.isSensitiveKey(key)
+          ? `${key}=[REDACTED]`
+          : `${key}=${value}`;
+      })
+      .join('&');
+
+    return `${sanitizedPathPart}?${sanitizedQuery}`;
+  }
+
+  private isSensitiveKey(key: string): boolean {
+    return ['token', 'access_token', 'refresh_token', 'authorization'].includes(
+      key.toLowerCase(),
+    );
+  }
+
+  private looksSensitive(value: string): boolean {
+    const decodedValue = this.safeDecodeURIComponent(value);
+
+    return (
+      /^Bearer\s+/i.test(decodedValue) ||
+      /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/.test(decodedValue)
+    );
+  }
+
+  private safeDecodeURIComponent(value: string): string {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
     }
   }
 }

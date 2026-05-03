@@ -59,17 +59,43 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ghcr.io/${{ env.OWNER_LC }}/payments:${{ env.IMAGE_TAG }}
 
+      - name: Build and push orders tools
+        id: orders_tools
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: services/orders-service/Dockerfile
+          target: tools
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ghcr.io/${{ env.OWNER_LC }}/orders-tools:${{ env.IMAGE_TAG }}
+
+      - name: Build and push payments migrations
+        id: payments_migrate
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: services/payments-service/Dockerfile
+          target: build
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ghcr.io/${{ env.OWNER_LC }}/payments-migrate:${{ env.IMAGE_TAG }}
+
       - name: Write release-manifest.json
         env:
           ORDERS_DIGEST: ${{ steps.orders.outputs.digest }}
+          ORDERS_TOOLS_DIGEST: ${{ steps.orders_tools.outputs.digest }}
           PAYMENTS_DIGEST: ${{ steps.payments.outputs.digest }}
+          PAYMENTS_MIGRATE_DIGEST: ${{ steps.payments_migrate.outputs.digest }}
         run: |
           jq -n \
             --arg commit "${{ github.sha }}" \
             --arg tag "${{ env.IMAGE_TAG }}" \
             --arg owner "${{ env.OWNER_LC }}" \
             --arg od "$ORDERS_DIGEST" \
+            --arg otd "$ORDERS_TOOLS_DIGEST" \
             --arg pd "$PAYMENTS_DIGEST" \
+            --arg pmd "$PAYMENTS_MIGRATE_DIGEST" \
             '{
               commit: $commit,
               image_tag: $tag,
@@ -78,9 +104,17 @@ jobs:
                   image: ("ghcr.io/" + $owner + "/orders-api:" + $tag),
                   digest: $od
                 },
+                "orders-tools": {
+                  image: ("ghcr.io/" + $owner + "/orders-tools:" + $tag),
+                  digest: $otd
+                },
                 payments: {
                   image: ("ghcr.io/" + $owner + "/payments:" + $tag),
                   digest: $pd
+                },
+                "payments-migrate": {
+                  image: ("ghcr.io/" + $owner + "/payments-migrate:" + $tag),
+                  digest: $pmd
                 }
               }
             }' > release-manifest.json
@@ -106,6 +140,11 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Set up Node for post-deploy e2e
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Download release manifest
         uses: actions/download-artifact@v4
         with:
@@ -123,8 +162,16 @@ jobs:
           jq -r '.services["orders-api"].image' release-manifest.json >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
 
+          echo 'ORDERS_TOOLS_IMAGE<<EOF' >> $GITHUB_ENV
+          jq -r '.services["orders-tools"].image' release-manifest.json >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
           echo 'PAYMENTS_IMAGE<<EOF' >> $GITHUB_ENV
           jq -r '.services["payments"].image' release-manifest.json >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+          echo 'PAYMENTS_MIGRATE_IMAGE<<EOF' >> $GITHUB_ENV
+          jq -r '.services["payments-migrate"].image' release-manifest.json >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
 
       - name: Write deploy/.env.stage from Environment secrets
@@ -147,14 +194,14 @@ jobs:
           AWS_BUCKET: ${{ secrets.AWS_BUCKET }}
           AWS_ENDPOINT: ${{ secrets.AWS_ENDPOINT }}
           CLOUDFRONT_BASE_URL: ${{ secrets.CLOUDFRONT_BASE_URL }}
-          RABBIT_USER: ${{ secrets.RABBIT_USER }}
-          RABBIT_PASSWORD: ${{ secrets.RABBIT_PASSWORD }}
+          RABBITMQ_USER: ${{ secrets.RABBITMQ_USER }}
+          RABBITMQ_PASSWORD: ${{ secrets.RABBITMQ_PASSWORD }}
           RABBITMQ_PREFETCH: ${{ secrets.RABBITMQ_PREFETCH }}
           RABBITMQ_URL: ${{ secrets.RABBITMQ_URL }}
-          RABBIT_QUEUE_ORDERS: ${{ secrets.RABBIT_QUEUE_ORDERS }}
-          RABBIT_QUEUE_DLQ: ${{ secrets.RABBIT_QUEUE_DLQ }}
-          RABBIT_RETRY_COUNT: ${{ secrets.RABBIT_RETRY_COUNT }}
-          RABBIT_RETRY_DELAY: ${{ secrets.RABBIT_RETRY_DELAY }}
+          RABBITMQ_QUEUE_ORDERS: ${{ secrets.RABBITMQ_QUEUE_ORDERS }}
+          RABBITMQ_QUEUE_DLQ: ${{ secrets.RABBITMQ_QUEUE_DLQ }}
+          RABBITMQ_RETRY_COUNT: ${{ secrets.RABBITMQ_RETRY_COUNT }}
+          RABBITMQ_RETRY_DELAY: ${{ secrets.RABBITMQ_RETRY_DELAY }}
           PAYMENTS_DB_HOST: ${{ secrets.PAYMENTS_DB_HOST }}
           PAYMENTS_DB_PORT: ${{ secrets.PAYMENTS_DB_PORT }}
           PAYMENTS_DB_USER: ${{ secrets.PAYMENTS_DB_USER }}
@@ -175,8 +222,8 @@ jobs:
               "PAYMENTS_GRPC_BIND_URL", "DB_HOST_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME",
               "JWT_SECRET", "JWT_EXPIRES_IN", "AWS_REGION", "AWS_ACCESS_KEY_ID",
               "AWS_SECRET_ACCESS_KEY", "AWS_BUCKET", "AWS_ENDPOINT", "CLOUDFRONT_BASE_URL",
-              "RABBIT_USER", "RABBIT_PASSWORD", "RABBITMQ_PREFETCH", "RABBITMQ_URL",
-              "RABBIT_QUEUE_ORDERS", "RABBIT_QUEUE_DLQ", "RABBIT_RETRY_COUNT", "RABBIT_RETRY_DELAY",
+              "RABBITMQ_USER", "RABBITMQ_PASSWORD", "RABBITMQ_PREFETCH", "RABBITMQ_URL",
+              "RABBITMQ_QUEUE_ORDERS", "RABBITMQ_QUEUE_DLQ", "RABBITMQ_RETRY_COUNT", "RABBITMQ_RETRY_DELAY",
               "PAYMENTS_DB_HOST", "PAYMENTS_DB_PORT", "PAYMENTS_DB_USER", "PAYMENTS_DB_PASSWORD",
               "PAYMENTS_DB_NAME", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD", "MINIO_API_PORT",
               "MINIO_CONSOLE_PORT", "PORT",
@@ -202,7 +249,9 @@ jobs:
           set -euo pipefail
           test -f deploy/.env.stage
           export ORDERS_IMAGE="${ORDERS_IMAGE}"
+          export ORDERS_TOOLS_IMAGE="${ORDERS_TOOLS_IMAGE}"
           export PAYMENTS_IMAGE="${PAYMENTS_IMAGE}"
+          export PAYMENTS_MIGRATE_IMAGE="${PAYMENTS_MIGRATE_IMAGE}"
 
           docker-compose \
             -p myapp-stage \
@@ -238,3 +287,8 @@ jobs:
           docker ps
           docker logs myapp-stage_orders-api_1 --tail 200 || true
           exit 1
+
+      - name: Stage main flow e2e
+        env:
+          BASE_URL: http://localhost:8080
+        run: node scripts/e2e-main-flow.mjs
