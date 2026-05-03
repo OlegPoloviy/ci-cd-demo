@@ -45,13 +45,13 @@ create user -> login -> get product -> create order -> authorize payment -> publ
 Поточний deployed endpoint:
 
 ```text
-https://a869e44f1a0eb359-46-150-73-224.serveousercontent.com
+https://oleg-store-api.serveousercontent.com
 ```
 
 Health-check:
 
 ```bash
-curl -k https://a869e44f1a0eb359-46-150-73-224.serveousercontent.com/health
+curl -k https://oleg-store-api.serveousercontent.com/health
 ```
 
 Очікувана відповідь:

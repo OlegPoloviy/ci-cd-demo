@@ -4,13 +4,13 @@
 Public URL:
 
 ```text
-https://a869e44f1a0eb359-46-150-73-224.serveousercontent.com
+https://oleg-store-api.serveousercontent.com
 ```
 
 Health-check command:
 
 ```bash
-curl -k https://a869e44f1a0eb359-46-150-73-224.serveousercontent.com/health
+curl -k https://oleg-store-api.serveousercontent.com/health
 ```
 
 Expected response:
@@ -56,14 +56,14 @@ PENDING -> PROCESSED
 Script:
 
 ```bash
-BASE_URL=https://a869e44f1a0eb359-46-150-73-224.serveousercontent.com node scripts/e2e-main-flow.mjs
+BASE_URL=https://oleg-store-api.serveousercontent.com node scripts/e2e-main-flow.mjs
 ```
 
 If using the current Serveo TLS endpoint with Node:
 
 ```powershell
 $env:NODE_TLS_REJECT_UNAUTHORIZED="0"
-$env:BASE_URL="https://a869e44f1a0eb359-46-150-73-224.serveousercontent.com"
+$env:BASE_URL="https://oleg-store-api.serveousercontent.com"
 node scripts/e2e-main-flow.mjs
 ```
 
