@@ -35,7 +35,7 @@ import { Observable } from 'rxjs';
 import { lastValueFrom, timeout } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 
-const ORDERS_PROCESS_QUEUE = 'orders.process';
+const DEFAULT_ORDERS_PROCESS_QUEUE = 'orders.process';
 
 interface AuthorizeRequest {
   orderId: string;
@@ -232,7 +232,7 @@ export class OrdersService implements OnModuleInit {
     }
 
     const messageId = randomUUID();
-    this.rabbitmqService.publish(ORDERS_PROCESS_QUEUE, {
+    this.rabbitmqService.publish(this.getOrdersProcessQueue(), {
       messageId,
       orderId: savedOrder.id,
       createdAt: savedOrder.createdAt.toISOString(),
@@ -470,6 +470,11 @@ export class OrdersService implements OnModuleInit {
 
   private getActorId(user: AuthUser): string | undefined {
     return user.id ?? user.sub;
+  }
+
+  private getOrdersProcessQueue(): string {
+    const queue = this.configService.get<string>('RABBITMQ_QUEUE_ORDERS');
+    return queue?.trim() || DEFAULT_ORDERS_PROCESS_QUEUE;
   }
 
   async setOrderCourierId(
