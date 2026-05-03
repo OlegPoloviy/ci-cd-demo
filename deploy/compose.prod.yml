@@ -126,22 +126,6 @@ services:
       db:
         condition: service_healthy
 
-  orders-seed:
-    image: ${ORDERS_TOOLS_IMAGE}
-    command: pnpm run db:seed
-    env_file:
-      - .env.production
-    environment:
-      DB_HOST: db
-      DB_PORT: '5432'
-    networks:
-      - db-network
-    depends_on:
-      db:
-        condition: service_healthy
-      orders-migrate:
-        condition: service_completed_successfully
-
   orders-api:
     image: ${ORDERS_IMAGE}
     env_file:
@@ -162,7 +146,7 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      orders-seed:
+      orders-migrate:
         condition: service_completed_successfully
       payments-api:
         condition: service_started

@@ -37,18 +37,24 @@ async function request(path, options = {}) {
 }
 
 async function waitForHealth() {
+  let lastError = null;
+
   for (let attempt = 1; attempt <= 30; attempt += 1) {
     try {
       const health = await request('/health');
       if (health?.status === 'ok') return;
-    } catch {
-      // keep polling
+    } catch (error) {
+      lastError = error;
     }
 
     await sleep(1000);
   }
 
-  throw new Error(`Service did not become healthy at ${baseUrl}`);
+  throw new Error(
+    `Service did not become healthy at ${baseUrl}. Last error: ${
+      lastError instanceof Error ? lastError.message : String(lastError)
+    }`,
+  );
 }
 
 async function main() {
