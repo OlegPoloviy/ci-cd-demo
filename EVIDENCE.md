@@ -78,3 +78,23 @@ Observed result:
 Loom video covering all of things:
 https://www.loom.com/share/ca8e3e704c584d2fad03ace8b7491524
 
+Observability:
+<img width="1469" height="491" alt="image" src="https://github.com/user-attachments/assets/f5919416-ca9a-412d-82fc-bde7091e9c2b" />
+Those logs are shown in our server after creating an order and changing the status
+
+## Prometheus & Grafana
+Targets in Prometheus
+<img width="2517" height="984" alt="image" src="https://github.com/user-attachments/assets/b77a4623-c3b1-49bf-895a-69ca02aba415" />
+
+# Grafana dashboards
+<img width="2217" height="857" alt="image" src="https://github.com/user-attachments/assets/db2f3112-1de7-476c-8218-6d579b90e004" />
+
+<img width="2201" height="529" alt="image" src="https://github.com/user-attachments/assets/908b9628-cec7-4473-8209-6573a620821c" />
+
+<img width="2234" height="663" alt="image" src="https://github.com/user-attachments/assets/73a394d6-78d7-4e1a-a280-3ae3ac3a7316" />
+
+<img width="2165" height="740" alt="image" src="https://github.com/user-attachments/assets/958d5c32-9a84-4313-8b95-bdd81afab1ea" />
+
+
+
+
