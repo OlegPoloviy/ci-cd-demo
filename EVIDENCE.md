@@ -1,7 +1,4 @@
 # Evidence Pack
-
-Цей файл призначений для доказів роботи системи під час рев'ю або live demo. Сюди можна вставити screenshots, посилання на Loom/відео, GitHub Actions runs та фактичні результати перевірок.
-
 ## 1. Deployed Service
 
 Public URL:
@@ -94,6 +91,12 @@ Targets in Prometheus
 <img width="2234" height="663" alt="image" src="https://github.com/user-attachments/assets/73a394d6-78d7-4e1a-a280-3ae3ac3a7316" />
 
 <img width="2165" height="740" alt="image" src="https://github.com/user-attachments/assets/958d5c32-9a84-4313-8b95-bdd81afab1ea" />
+
+# Github actions checks 
+<img width="2500" height="801" alt="image" src="https://github.com/user-attachments/assets/5397c9ba-ee50-45a6-9607-c72b8f6b5b12" />
+## Self hosted runner
+
+<img width="835" height="199" alt="image" src="https://github.com/user-attachments/assets/6b1f54de-86e8-4381-9579-24f8b5d9d0b8" />
 
 
 
